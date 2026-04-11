@@ -1,0 +1,505 @@
+﻿openapi: 3.0.3
+info:
+  title: Aiermei Mini Program API
+  version: 1.0.0
+  description: 爱儿美月子中心小程序前端联调接口文档。
+servers:
+  - url: https://api.aiermei.example.com
+
+tags:
+  - name: Auth
+  - name: HomeCenter
+  - name: Content
+  - name: Member
+  - name: Admin
+
+paths:
+  /api/v1/auth/wechat-login:
+    post:
+      tags: [Auth]
+      summary: 微信登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /api/v1/banners:
+    get:
+      tags: [HomeCenter]
+      summary: 首页轮播
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerListResponse'
+
+  /api/v1/posters/{posterId}:
+    get:
+      tags: [HomeCenter]
+      summary: 海报详情
+      parameters:
+        - in: path
+          name: posterId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerResponse'
+
+  /api/v1/center/categories:
+    get:
+      tags: [HomeCenter]
+      summary: 中心服务分类
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceCategoryListResponse'
+
+  /api/v1/center/suites:
+    get:
+      tags: [HomeCenter]
+      summary: 套房列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuiteListResponse'
+
+  /api/v1/center/sections/{sectionId}:
+    get:
+      tags: [HomeCenter]
+      summary: 中心模块详情
+      parameters:
+        - in: path
+          name: sectionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CenterSectionResponse'
+
+  /api/v1/content/feed:
+    get:
+      tags: [Content]
+      summary: 内容流
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentFeedResponse'
+
+  /api/v1/content/questions/preset:
+    get:
+      tags: [Content]
+      summary: 预设问答
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetQuestionListResponse'
+
+  /api/v1/member/profile:
+    get:
+      tags: [Member]
+      summary: 会员资料
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+
+  /api/v1/member/coupons:
+    get:
+      tags: [Member]
+      summary: 优惠券列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponListResponse'
+
+  /api/v1/member/postpartum-services:
+    get:
+      tags: [Member]
+      summary: 产后服务记录
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostpartumServiceListResponse'
+
+  /api/v1/member/evaluations:
+    post:
+      tags: [Member]
+      summary: 提交服务评估
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, content]
+              properties:
+                type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+
+  /api/v1/member/complaints:
+    post:
+      tags: [Member]
+      summary: 提交投诉建议
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, content]
+              properties:
+                type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+
+  /api/v1/admin/user-paths/{uid}:
+    get:
+      tags: [Admin]
+      summary: 用户行为路径
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPathListResponse'
+
+  /api/v1/admin/analyze-profile:
+    post:
+      tags: [Admin]
+      summary: 用户画像分析
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+
+components:
+  schemas:
+    BaseResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        requestId:
+          type: string
+
+    Banner:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        buttonText: { type: string }
+        image: { type: string }
+        detailTitle: { type: string }
+        detailContent: { type: string }
+
+    ServiceCategory:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        desc: { type: string }
+
+    Suite:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        price: { type: string }
+        size: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        images:
+          type: array
+          items: { type: string }
+
+    ContentItem:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        cover: { type: string }
+        type: { type: string, enum: [image, video] }
+        category: { type: string }
+        author: { type: string }
+        likes: { type: integer }
+
+    PresetQuestion:
+      type: object
+      properties:
+        q: { type: string }
+        a: { type: string }
+
+    UserPath:
+      type: object
+      properties:
+        path: { type: string }
+        timestamp: { type: integer, format: int64 }
+
+    UserProfile:
+      type: object
+      properties:
+        uid: { type: string }
+        nickname: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        lastActive: { type: integer, format: int64 }
+        isLoggedIn: { type: boolean }
+        paths:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserPath'
+
+    Coupon:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        value: { type: string }
+        expiry: { type: string }
+        status: { type: string }
+
+    PostpartumService:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        time: { type: string }
+        status: { type: string }
+        expert: { type: string }
+
+    AnalysisResult:
+      type: object
+      properties:
+        tags:
+          type: array
+          items: { type: string }
+        script: { type: string }
+
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token: { type: string }
+                refreshToken: { type: string }
+                expiresIn: { type: integer }
+
+    BannerResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Banner'
+
+    BannerListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Banner'
+
+    ServiceCategoryListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ServiceCategory'
+
+    SuiteListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Suite'
+
+    CenterSectionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id: { type: string }
+                title: { type: string }
+                content: { type: string }
+
+    ContentFeedResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                list:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ContentItem'
+                total: { type: integer }
+                page: { type: integer }
+                pageSize: { type: integer }
+
+    PresetQuestionListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PresetQuestion'
+
+    UserProfileResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserProfile'
+
+    CouponListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Coupon'
+
+    PostpartumServiceListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PostpartumService'
+
+    UserPathListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserPath'
+
+    AnalysisResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AnalysisResult'
+
+    SubmitResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                submitted: { type: boolean }

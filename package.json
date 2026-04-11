@@ -1,0 +1,9 @@
+{
+  "name": "aiermei-wechatapp",
+  "version": "1.0.0",
+  "description": "爱儿美月子中心小程序前端",
+  "private": true,
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.30"
+  }
+}
