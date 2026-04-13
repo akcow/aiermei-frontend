@@ -8,7 +8,7 @@
       <view class="fortune-card fade-in">
         <view class="fortune-top">
           <view>
-            <view class="fortune-title">今日推荐</view>
+            <view class="fortune-title">今日好运签</view>
             <view class="fortune-sub">Daily Fortune</view>
           </view>
           <view class="fortune-date">11 Apr</view>
@@ -231,9 +231,9 @@ onUnload(() => {
 }
 
 .fortune-sub {
-  margin-top: 4rpx;
+  margin-top: 6rpx;
   color: #fb7185;
-  font-size: 26rpx;
+  font-size: 28rpx;
   letter-spacing: 2rpx;
 }
 
@@ -259,22 +259,22 @@ onUnload(() => {
 }
 
 .small-label {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #fb7185;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
 }
 
 .small-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #4b5563;
-  line-height: 1.7;
+  line-height: 2.4;
 }
 
 .fortune-text {
-  margin-top: 22rpx;
-  min-height: 156rpx;
-  font-size: 30rpx;
-  line-height: 1.82;
+  margin-top: 30rpx;
+  min-height: 180rpx;
+  font-size: 32rpx;
+  line-height: 2.5;
   color: #6b7280;
 }
 

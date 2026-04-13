@@ -38,13 +38,34 @@
       </view>
     </view>
 
-    <view class="body" v-else-if="type === 'faq'">
-      <view class="card row" v-for="(item, idx) in questions" :key="idx">
-        <view>
-          <view class="q">{{ item.q }}</view>
-          <view class="a">{{ item.a }}</view>
+    <view class="body faq-body" v-else-if="type === 'faq'">
+      <!-- 入口卡片 -->
+      <view v-if="!faqCategory">
+        <view class="faq-entry" @click="faqCategory = 'pregnancy'">
+          <view class="faq-entry-text">我的孕期</view>
+          <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
-        <image class="arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
+        <view class="faq-entry" @click="faqCategory = 'account'">
+          <view>
+            <view class="faq-entry-text">常见问题</view>
+            <view class="faq-entry-sub">隐私条款及账户问题</view>
+          </view>
+          <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
+        </view>
+      </view>
+      <!-- 问题列表 -->
+      <view v-else>
+        <view class="faq-back" @click="faqCategory = ''">
+          <image class="faq-back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
+          <text>{{ faqCategory === 'pregnancy' ? '我的孕期' : '常见问题' }}</text>
+        </view>
+        <view class="faq-item" v-for="(item, idx) in currentFaqQuestions" :key="idx" @click="toggleFaq(idx)">
+          <view class="faq-header">
+            <view class="faq-q">{{ item.q }}</view>
+            <image class="faq-arrow" :class="{ expanded: expandedFaq === idx }" src="/static/icons/arrow-down.svg" mode="aspectFit" />
+          </view>
+          <view class="faq-a" v-if="expandedFaq === idx">{{ item.a }}</view>
+        </view>
       </view>
     </view>
 
@@ -105,8 +126,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getPresetQuestions } from '@/api/modules/content';
-import { getMemberCoupons, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
+import { getFaqItems, getMemberCoupons, getPregnancyFaqItems, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
 import { getSuites } from '@/api/modules/center';
 import { hotlineList } from '@/mock/data';
 import { trackPath } from '@/store/session';
@@ -120,10 +140,13 @@ const complaintType = ref('环境问题');
 const types = ['环境问题', '服务态度', '流程建议', '其他'];
 
 const questions = ref<PresetQuestion[]>([]);
+const pregnancyQuestions = ref<PresetQuestion[]>([]);
 const suites = ref<Suite[]>([]);
 const coupons = ref<Coupon[]>([]);
 const services = ref<PostpartumService[]>([]);
 const hotlineListData = hotlineList;
+const expandedFaq = ref<number | null>(null);
+const faqCategory = ref<string>('');
 
 const titleMap: Record<string, string> = {
   evaluation: '服务评价',
@@ -136,6 +159,13 @@ const titleMap: Record<string, string> = {
 };
 
 const title = computed(() => titleMap[type.value] || '详情');
+
+const currentFaqQuestions = computed(() => {
+  if (faqCategory.value === 'pregnancy') {
+    return pregnancyQuestions.value;
+  }
+  return questions.value;
+});
 
 function goBack() {
   uni.navigateBack();
@@ -161,9 +191,15 @@ function openSuite(id: string) {
   uni.navigateTo({ url: `/pages/suite-details/index?id=${id}` });
 }
 
+function toggleFaq(idx: number) {
+  expandedFaq.value = expandedFaq.value === idx ? null : idx;
+}
+
 async function loadByType() {
   if (type.value === 'faq') {
-    questions.value = (await getPresetQuestions()).data;
+    const [faqRes, pregnancyRes] = await Promise.all([getFaqItems(), getPregnancyFaqItems()]);
+    questions.value = faqRes.data;
+    pregnancyQuestions.value = pregnancyRes.data;
   }
   if (type.value === 'package') {
     suites.value = (await getSuites()).data;
@@ -441,5 +477,90 @@ onLoad(async (query) => {
   background: #111827;
   color: #fff;
   border-color: #111827;
+}
+
+.faq-item {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+}
+
+.faq-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+}
+
+.faq-q {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.faq-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.5;
+  transition: transform 0.3s ease;
+}
+
+.faq-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.faq-a {
+  padding: 0 32rpx 28rpx;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+}
+
+.faq-body {
+  padding-top: 40rpx;
+}
+
+.faq-entry {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 36rpx 32rpx;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.faq-entry-text {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.faq-entry-sub {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.faq-entry-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.4;
+}
+
+.faq-back {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 20rpx 0 30rpx;
+  font-size: 30rpx;
+  color: #666;
+}
+
+.faq-back-icon {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.6;
 }
 </style>

@@ -1,5 +1,5 @@
 ﻿import type { ApiResponse } from '@/types/api';
-import { banners, contentItems, coupons, defaultProfile, mockAnalysis, postpartumServices, presetQuestions, serviceCategories, suites } from './data';
+import { banners, contentItems, coupons, defaultProfile, faqItems, mockAnalysis, postpartumServices, pregnancyFaqItems, presetQuestions, serviceCategories, suites } from './data';
 
 export function createMockResponse<T>(data: T): ApiResponse<T> {
   return {
@@ -30,6 +30,10 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
       return createMockResponse(coupons);
     case 'GET /api/v1/member/postpartum-services':
       return createMockResponse(postpartumServices);
+    case 'GET /api/v1/member/faq':
+      return createMockResponse(faqItems);
+    case 'GET /api/v1/member/faq/pregnancy':
+      return createMockResponse(pregnancyFaqItems);
     case 'POST /api/v1/member/evaluations':
       return createMockResponse({ submitted: true, ...data });
     case 'POST /api/v1/member/complaints':
