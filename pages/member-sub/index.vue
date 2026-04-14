@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page sub-page">
     <view class="head">
         <view class="back" @click="goBack">
@@ -23,7 +23,7 @@
     </view>
 
     <view class="body" v-else-if="type === 'hotline'">
-      <view class="card hotline" v-for="item in hotlineListData" :key="item.number">
+      <view class="card hotline" v-for="item in hotlines" :key="item.number">
         <view>
           <view class="tip">{{ item.label }}</view>
           <view class="hotline-number">{{ item.number }}</view>
@@ -32,24 +32,17 @@
           <image class="call-icon" src="/static/icons/phone.svg" mode="aspectFit" />
         </view>
       </view>
-      <view class="card center">
-        <view class="tip">扫码联系顾问</view>
-        <image class="qr" src="https://picsum.photos/seed/qr2/360/360" mode="aspectFill" />
+      <view class="card center" v-if="serviceQrCodeUrl">
+        <view class="tip">{{ serviceQrTips || '扫码联系顾问' }}</view>
+        <image class="qr" :src="serviceQrCodeUrl" mode="aspectFill" />
       </view>
     </view>
 
     <view class="body faq-body" v-else-if="type === 'faq'">
       <!-- 入口卡片 -->
       <view v-if="!faqCategory">
-        <view class="faq-entry" @click="faqCategory = 'pregnancy'">
-          <view class="faq-entry-text">我的孕期</view>
-          <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
-        </view>
-        <view class="faq-entry" @click="faqCategory = 'account'">
-          <view>
-            <view class="faq-entry-text">常见问题</view>
-            <view class="faq-entry-sub">隐私条款及账户问题</view>
-          </view>
+        <view class="faq-entry" v-for="cat in faqCategories" :key="cat.id" @click="selectFaqCategory(cat.id, cat.name)">
+          <view class="faq-entry-text">{{ cat.name }}</view>
           <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
       </view>
@@ -57,37 +50,37 @@
       <view v-else>
         <view class="faq-back" @click="faqCategory = ''">
           <image class="faq-back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
-          <text>{{ faqCategory === 'pregnancy' ? '我的孕期' : '常见问题' }}</text>
+          <text>{{ faqCategoryName }}</text>
         </view>
-        <view class="faq-item" v-for="(item, idx) in currentFaqQuestions" :key="idx" @click="toggleFaq(idx)">
+        <view class="faq-item" v-for="(item, idx) in faqItems" :key="item.id" @click="toggleFaq(idx)">
           <view class="faq-header">
-            <view class="faq-q">{{ item.q }}</view>
+            <view class="faq-q">{{ item.title }}</view>
             <image class="faq-arrow" :class="{ expanded: expandedFaq === idx }" src="/static/icons/arrow-down.svg" mode="aspectFit" />
           </view>
-          <view class="faq-a" v-if="expandedFaq === idx">{{ item.a }}</view>
+          <view class="faq-a" v-if="expandedFaq === idx">{{ item.content }}</view>
         </view>
       </view>
     </view>
 
     <view class="body" v-else-if="type === 'package'">
       <view class="card package" v-for="item in suites" :key="item.id" @click="openSuite(item.id)">
-        <image :src="item.images[0]" class="pkg-cover" mode="aspectFill" />
+        <image :src="item.coverImage || item.images?.[0]" class="pkg-cover" mode="aspectFill" />
         <view class="pkg-title">{{ item.name }}</view>
         <view class="pkg-desc">{{ item.size }} / {{ item.features.join(' | ') }}</view>
-        <view class="pkg-price">{{ item.price }}</view>
+        <view class="pkg-price">{{ item.priceLabel }}</view>
       </view>
     </view>
 
     <view class="body" v-else-if="type === 'coupon'">
       <view class="card coupon" v-for="item in coupons" :key="item.id">
-        <view class="left-bar" :class="{ off: item.status !== '可用' }" />
+        <view class="left-bar" :class="{ off: item.status !== 'unused' }" />
         <view>
           <view class="q">{{ item.name }}</view>
           <view class="a">到期 {{ item.expiry }}</view>
         </view>
         <view class="coupon-right">
-          <view class="coupon-money">{{ item.value }}</view>
-          <view class="coupon-state" :class="{ off: item.status !== '可用' }">{{ item.status }}</view>
+          <view class="coupon-money">{{ item.valueLabel }}</view>
+          <view class="coupon-state" :class="{ off: item.status !== 'unused' }">{{ item.status === 'unused' ? '可用' : '已过期' }}</view>
         </view>
       </view>
     </view>
@@ -96,7 +89,7 @@
       <view class="card service" v-for="item in services" :key="item.id">
         <view class="row-between">
           <view class="q">{{ item.name }}</view>
-          <view class="status" :class="{ doneStatus: item.status === '已完成' }">{{ item.status }}</view>
+          <view class="status" :class="{ doneStatus: item.status === 'completed' }">{{ item.status === 'pending' ? '待服务' : '已完成' }}</view>
         </view>
         <view class="a">{{ item.expert }} / {{ item.time }}</view>
       </view>
@@ -106,7 +99,7 @@
       <view class="card">
         <view class="tip">问题类型</view>
         <view class="type-grid">
-          <view class="type-item" :class="{ active: complaintType === t }" v-for="t in types" :key="t" @click="complaintType = t">{{ t }}</view>
+          <view class="type-item" :class="{ active: complaintType === t.value }" v-for="t in complaintTypes" :key="t.value" @click="complaintType = t.value">{{ t.label }}</view>
         </view>
       </view>
       <view class="card">
@@ -126,27 +119,34 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getFaqItems, getMemberCoupons, getPregnancyFaqItems, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
+import { getFaqCategories, getFaqItems, getMemberCoupons, getServiceHotlines, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
 import { getSuites } from '@/api/modules/center';
-import { hotlineList } from '@/mock/data';
 import { trackPath } from '@/store/session';
-import type { Coupon, PostpartumService, PresetQuestion, Suite } from '@/types/domain';
+import type { Coupon, PostpartumService, FaqCategory, FaqItem, Suite, HotlineInfo } from '@/types/domain';
 
 const type = ref('evaluation');
 const rating = ref(0);
 const content = ref('');
 const submitted = ref(false);
-const complaintType = ref('环境问题');
-const types = ['环境问题', '服务态度', '流程建议', '其他'];
+const complaintType = ref<string>('SERVICE_QUALITY');
+const complaintTypes = [
+  { value: 'SERVICE_QUALITY', label: '服务质量' },
+  { value: 'FACILITY_ENVIRONMENT', label: '环境设施' },
+  { value: 'CATERING_SUGGESTION', label: '餐饮建议' },
+  { value: 'OTHER', label: '其他' }
+];
 
-const questions = ref<PresetQuestion[]>([]);
-const pregnancyQuestions = ref<PresetQuestion[]>([]);
+const faqCategories = ref<FaqCategory[]>([]);
+const faqItems = ref<FaqItem[]>([]);
+const faqCategory = ref<string>('');
+const faqCategoryName = ref<string>('');
 const suites = ref<Suite[]>([]);
 const coupons = ref<Coupon[]>([]);
 const services = ref<PostpartumService[]>([]);
-const hotlineListData = hotlineList;
+const hotlines = ref<HotlineInfo[]>([]);
+const serviceQrCodeUrl = ref<string>('');
+const serviceQrTips = ref<string>('');
 const expandedFaq = ref<number | null>(null);
-const faqCategory = ref<string>('');
 
 const titleMap: Record<string, string> = {
   evaluation: '服务评价',
@@ -160,27 +160,34 @@ const titleMap: Record<string, string> = {
 
 const title = computed(() => titleMap[type.value] || '详情');
 
-const currentFaqQuestions = computed(() => {
-  if (faqCategory.value === 'pregnancy') {
-    return pregnancyQuestions.value;
-  }
-  return questions.value;
-});
-
 function goBack() {
   uni.navigateBack();
 }
 
 async function submitEvaluationAction() {
   if (rating.value === 0) return;
-  await submitEvaluation({ type: 'service', content: content.value || `评分${rating.value}` });
-  submitted.value = true;
+  try {
+    await submitEvaluation({
+      score: rating.value,
+      content: content.value || undefined
+    });
+    submitted.value = true;
+  } catch (e) {
+    uni.showToast({ title: '提交失败', icon: 'none' });
+  }
 }
 
 async function submitComplaintAction() {
   if (!content.value.trim()) return;
-  await submitComplaint({ type: complaintType.value, content: content.value });
-  submitted.value = true;
+  try {
+    await submitComplaint({
+      content: content.value,
+      complaintType: complaintType.value as any
+    });
+    submitted.value = true;
+  } catch (e) {
+    uni.showToast({ title: '提交失败', icon: 'none' });
+  }
 }
 
 function call(phone: string) {
@@ -195,20 +202,59 @@ function toggleFaq(idx: number) {
   expandedFaq.value = expandedFaq.value === idx ? null : idx;
 }
 
+async function selectFaqCategory(categoryId: string, name: string) {
+  faqCategory.value = categoryId;
+  faqCategoryName.value = name;
+  try {
+    const res = await getFaqItems(categoryId);
+    faqItems.value = res.data;
+  } catch (e) {
+    console.error('Failed to load FAQ items:', e);
+  }
+}
+
 async function loadByType() {
   if (type.value === 'faq') {
-    const [faqRes, pregnancyRes] = await Promise.all([getFaqItems(), getPregnancyFaqItems()]);
-    questions.value = faqRes.data;
-    pregnancyQuestions.value = pregnancyRes.data;
+    try {
+      const res = await getFaqCategories();
+      faqCategories.value = res.data;
+    } catch (e) {
+      console.error('Failed to load FAQ categories:', e);
+    }
   }
   if (type.value === 'package') {
-    suites.value = (await getSuites()).data;
+    try {
+      const res = await getSuites();
+      suites.value = res.data;
+    } catch (e) {
+      console.error('Failed to load suites:', e);
+    }
   }
   if (type.value === 'coupon') {
-    coupons.value = (await getMemberCoupons()).data;
+    try {
+      const res = await getMemberCoupons();
+      coupons.value = res.data;
+    } catch (e) {
+      console.error('Failed to load coupons:', e);
+    }
   }
   if (type.value === 'postpartum') {
-    services.value = (await getPostpartumServices()).data;
+    try {
+      const res = await getPostpartumServices();
+      services.value = res.data;
+    } catch (e) {
+      console.error('Failed to load postpartum services:', e);
+    }
+  }
+  if (type.value === 'hotline') {
+    try {
+      const res = await getServiceHotlines();
+      hotlines.value = res.data.hotlines;
+      serviceQrCodeUrl.value = res.data.serviceQrCodeUrl;
+      serviceQrTips.value = res.data.serviceQrTips;
+    } catch (e) {
+      console.error('Failed to load hotlines:', e);
+    }
   }
 }
 

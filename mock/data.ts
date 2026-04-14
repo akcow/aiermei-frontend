@@ -1,13 +1,19 @@
-﻿import type {
+import type {
   AnalysisResult,
   Banner,
   ContentItem,
+  ContentCategoryItem,
   Coupon,
   PostpartumService,
   PresetQuestion,
-  ServiceCategory,
+  CenterSection,
   Suite,
   UserProfile,
+  FortuneCard,
+  FaqCategory,
+  FaqItem,
+  ServiceHotlines,
+  CenterHome,
 } from '@/types/domain';
 
 export const banners: Banner[] = [
@@ -37,6 +43,13 @@ export const banners: Banner[] = [
   }
 ];
 
+export const contentCategories: ContentCategoryItem[] = [
+  { id: 'pregnancy', label: '孕期' },
+  { id: 'postpartum', label: '月子' },
+  { id: 'parenting', label: '育儿' },
+  { id: 'nanny', label: '月嫂' }
+];
+
 export const contentItems: ContentItem[] = [
   { id: '1', title: '新生儿睡眠节律怎么建立', cover: 'https://picsum.photos/seed/baby1/400/600', type: 'image', category: 'parenting', author: '爱儿美顾问', likes: 1240 },
   { id: '2', title: '顺产后第2周恢复建议', cover: 'https://picsum.photos/seed/recovery1/400/500', type: 'image', category: 'postpartum', author: '康复治疗师', likes: 856 },
@@ -46,53 +59,101 @@ export const contentItems: ContentItem[] = [
   { id: '6', title: '宝宝喂养常见误区', cover: 'https://picsum.photos/seed/sleep1/400/600', type: 'image', category: 'parenting', author: '母乳顾问', likes: 980 }
 ];
 
-export const serviceCategories: ServiceCategory[] = [
-  { id: 'recovery', title: '产后康复', desc: '评估体征并制定康复课程' },
-  { id: 'newborn', title: '新生儿照护', desc: '24h 观察与喂养指导' },
-  { id: 'nutrition', title: '营养膳食', desc: '分阶段营养搭配' },
-  { id: 'psychology', title: '心理支持', desc: '产后情绪与家庭沟通干预' }
+export const fortuneCard: FortuneCard = {
+  date: '2026-04-14',
+  suitable: '散步、听音乐、轻柔瑜伽',
+  avoid: '过度劳累、焦虑熬夜',
+  greeting: '中午好，亲爱的宝妈。今天阳光明媚，建议适当户外活动，保持心情愉悦。记得补充水分，关注宝宝喂养节律。'
+};
+
+export const centerSections: CenterSection[] = [
+  { id: 'env', title: '爱儿美·环境', coverImage: 'https://picsum.photos/seed/env_high/800/1200', desc: '静谧私密的疗愈空间，强调产后恢复舒适度。' },
+  { id: 'equip', title: '护理设备', coverImage: 'https://picsum.photos/seed/equip_high/800/1200', desc: '引入专业检测与监护设备，构建母婴安全闭环。' },
+  { id: 'meal', title: '营养餐食', coverImage: 'https://picsum.photos/seed/meal_high/800/1200', desc: '按阶段制定膳食方案，兼顾恢复与口味。' },
+  { id: 'team', title: '专家团队', coverImage: 'https://picsum.photos/seed/team_high/800/1200', desc: '护士、康复师、营养师协同服务。' }
 ];
+
+export const centerHome: CenterHome = {
+  heroImage: 'https://picsum.photos/seed/storefront/1080/1920',
+  brandTitle: 'AI ER MEI',
+  brandSubtitle: 'RESIDENCES',
+  facilities: [
+    { id: 'fac_1', title: '母婴照护体系', desc: '24h 护理值守与跨角色会诊，强调连续照护。', image: 'https://picsum.photos/seed/fac1_high/800/500' },
+    { id: 'fac_2', title: '产后恢复模块', desc: '按体征与阶段推进恢复计划，减少恢复焦虑。', image: 'https://picsum.photos/seed/fac2_high/800/500' }
+  ]
+};
 
 export const suites: Suite[] = [
   {
     id: 'elegant',
     name: '雅致套房',
-    price: '¥68,800',
+    price: 6880000,
+    priceLabel: '¥68,800起',
     size: '55㎡',
     features: ['独立会客区', '专业护理站响应', '每日营养餐'],
+    coverImage: 'https://picsum.photos/seed/suite1/800/600',
     images: ['https://picsum.photos/seed/suite1/800/600', 'https://picsum.photos/seed/suite1b/800/600']
   },
   {
     id: 'luxury',
     name: '尊享套房',
-    price: '¥128,800',
+    price: 12880000,
+    priceLabel: '¥128,800起',
     size: '85㎡',
     features: ['私享客厅', '一对一康复计划', '家庭探访支持'],
+    coverImage: 'https://picsum.photos/seed/suite2/800/600',
     images: ['https://picsum.photos/seed/suite2/800/600', 'https://picsum.photos/seed/suite2b/800/600']
   }
 ];
 
 export const presetQuestions: PresetQuestion[] = [
-  { q: '剖宫产后多久可以开始康复训练？', a: '通常在医生评估后 7-14 天可进行轻度训练。' },
-  { q: '月子期间家属可以陪住吗？', a: '部分房型支持陪住，需提前预约和实名登记。' },
-  { q: '宝宝黄疸如何监测？', a: '中心会每日评估并根据指标提供建议。' }
+  { id: 'qa_1', question: '剖宫产后多久可以开始康复训练？', answer: '通常在医生评估后 7-14 天可进行轻度训练。' },
+  { id: 'qa_2', question: '月子期间家属可以陪住吗？', answer: '部分房型支持陪住，需提前预约和实名登记。' },
+  { id: 'qa_3', question: '宝宝黄疸如何监测？', answer: '中心会每日评估并根据指标提供建议。' }
 ];
 
 export const coupons: Coupon[] = [
-  { id: 1, name: '产后康复体验券', value: '¥500', expiry: '2026-12-31', status: '可用' },
-  { id: 2, name: '新生儿护理抵扣券', value: '¥200', expiry: '2026-06-30', status: '可用' },
-  { id: 3, name: '营养餐升级券', value: '¥300', expiry: '2026-03-31', status: '已过期' }
+  { id: '1', name: '产后康复体验券', value: 50000, valueLabel: '¥500', expiry: '2026-12-31', status: 'unused' },
+  { id: '2', name: '新生儿护理抵扣券', value: 20000, valueLabel: '¥200', expiry: '2026-06-30', status: 'unused' },
+  { id: '3', name: '营养餐升级券', value: 30000, valueLabel: '¥300', expiry: '2026-03-31', status: 'expired' }
 ];
 
 export const postpartumServices: PostpartumService[] = [
-  { id: 1, name: '盆底肌修复', time: '2026-04-10 14:00', status: '待服务', expert: '康复治疗师A' },
-  { id: 2, name: '乳腺疏通护理', time: '2026-04-15 10:00', status: '待服务', expert: '护理专家B' },
-  { id: 3, name: '心理放松课程', time: '2026-03-25 15:00', status: '已完成', expert: '心理咨询师C' }
+  { id: '1', name: '盆底肌修复', time: '2026-04-10 14:00', status: 'pending', expert: '康复治疗师A' },
+  { id: '2', name: '乳腺疏通护理', time: '2026-04-15 10:00', status: 'pending', expert: '护理专家B' },
+  { id: '3', name: '心理放松课程', time: '2026-03-25 15:00', status: 'completed', expert: '心理咨询师C' }
 ];
+
+export const faqCategories: FaqCategory[] = [
+  { id: 'pregnancy', name: '我的孕期' },
+  { id: 'common', name: '常见问题' }
+];
+
+export const faqItemsCommon: FaqItem[] = [
+  { id: 'faq_1', categoryId: 'common', title: '如何注销我的账户？', content: '您可以在"我的-设置-账号管理"中申请注销账户，注销后数据将无法恢复，请谨慎操作。' },
+  { id: 'faq_2', categoryId: 'common', title: '我的个人信息会被共享给第三方吗？', content: '我们严格遵守隐私政策，您的个人信息仅用于提供服务，未经您同意不会共享给任何第三方。' },
+  { id: 'faq_3', categoryId: 'common', title: '如何修改绑定的手机号？', content: '请进入"我的-设置-账号管理-修改手机号"，通过验证码验证后即可更换。' },
+  { id: 'faq_4', categoryId: 'common', title: '隐私政策在哪里查看？', content: '您可以在"我的-设置-关于我们-隐私政策"中查看完整的隐私条款内容。' }
+];
+
+export const faqItemsPregnancy: FaqItem[] = [
+  { id: 'pfaq_1', categoryId: 'pregnancy', title: '孕期可以运动吗？', content: '孕期适度运动对母婴健康有益，建议选择散步、孕妇瑜伽等低强度运动，避免剧烈运动和跳跃动作。' },
+  { id: 'pfaq_2', categoryId: 'pregnancy', title: '孕期需要补充哪些营养？', content: '建议补充叶酸、钙、铁、DHA等营养素，具体用量请咨询您的产检医生。' },
+  { id: 'pfaq_3', categoryId: 'pregnancy', title: '孕期可以做几次产检？', content: '一般孕期需要进行8-12次产检，具体次数根据个人情况和医生建议而定。' }
+];
+
+export const serviceHotlines: ServiceHotlines = {
+  hotlines: [
+    { label: '24小时尊享热线', number: '400-106-1080' },
+    { label: '前台预约咨询', number: '010-8888-9999' }
+  ],
+  serviceQrCodeUrl: 'https://picsum.photos/seed/qr2/360/360',
+  serviceQrTips: '添加您的专属私教顾问'
+};
 
 export const defaultProfile: UserProfile = {
   uid: 'user_123',
-  nickname: '访客',
+  name: '访客',
   tags: [],
   lastActive: Date.now(),
   isLoggedIn: false,
@@ -118,16 +179,10 @@ export const memberShortcuts = [
   { id: 'complaint', title: '投诉建议' }
 ];
 
-export const centerSections = [
-  { id: 'env', title: '中心环境', image: 'https://picsum.photos/seed/env_high/800/1200', desc: '静谧私密的疗愈空间，强调产后恢复舒适度。' },
-  { id: 'equip', title: '护理设备', image: 'https://picsum.photos/seed/equip_high/800/1200', desc: '引入专业检测与监护设备，构建母婴安全闭环。' },
-  { id: 'meal', title: '营养餐食', image: 'https://picsum.photos/seed/meal_high/800/1200', desc: '按阶段制定膳食方案，兼顾恢复与口味。' },
-  { id: 'team', title: '专家团队', image: 'https://picsum.photos/seed/team_high/800/1200', desc: '护士、康复师、营养师协同服务。' }
-];
-
-export const centerFacilities = [
-  { title: '母婴照护体系', desc: '24h 护理值守与跨角色会诊，强调连续照护。', image: 'https://picsum.photos/seed/fac1_high/800/500' },
-  { title: '产后恢复模块', desc: '按体征与阶段推进恢复计划，减少恢复焦虑。', image: 'https://picsum.photos/seed/fac2_high/800/500' }
+export const hotlineList = [
+  { label: '24h 客服热线', number: '400-106-1080' },
+  { label: '预约参观咨询', number: '010-8888-9999' },
+  { label: '产后服务台', number: '010-8888-6666' }
 ];
 
 export const memberArticles = [
@@ -135,25 +190,7 @@ export const memberArticles = [
   { title: 'BEYOND MOTHERHOOD', subtitle: '母职之外的自我修复课题', desc: '阅读详情', image: 'https://picsum.photos/seed/mag2/400/400' }
 ];
 
-export const hotlineList = [
-  { label: '24h 客服热线', number: '400-106-1080' },
-  { label: '预约参观咨询', number: '010-8888-9999' },
-  { label: '产后服务台', number: '010-8888-6666' }
-];
-
-export const faqItems: PresetQuestion[] = [
-  { q: '如何注销我的账户？', a: '您可以在"我的-设置-账号管理"中申请注销账户，注销后数据将无法恢复，请谨慎操作。' },
-  { q: '我的个人信息会被共享给第三方吗？', a: '我们严格遵守隐私政策，您的个人信息仅用于提供服务，未经您同意不会共享给任何第三方。' },
-  { q: '如何修改绑定的手机号？', a: '请进入"我的-设置-账号管理-修改手机号"，通过验证码验证后即可更换。' },
-  { q: '隐私政策在哪里查看？', a: '您可以在"我的-设置-关于我们-隐私政策"中查看完整的隐私条款内容。' },
-  { q: '忘记密码怎么办？', a: '点击登录页面的"忘记密码"，通过手机验证码即可重置密码。' },
-  { q: '如何申请开具发票？', a: '请进入"我的-我的订单"，选择对应订单后点击"申请发票"，填写信息后提交即可。' }
-];
-
-export const pregnancyFaqItems: PresetQuestion[] = [
-  { q: '孕期可以运动吗？', a: '孕期适度运动对母婴健康有益，建议选择散步、孕妇瑜伽等低强度运动，避免剧烈运动和跳跃动作。' },
-  { q: '孕期需要补充哪些营养？', a: '建议补充叶酸、钙、铁、DHA等营养素，具体用量请咨询您的产检医生。' },
-  { q: '孕期可以做几次产检？', a: '一般孕期需要进行8-12次产检，具体次数根据个人情况和医生建议而定。' },
-  { q: '孕晚期如何缓解腰背疼痛？', a: '可以尝试热敷、按摩、使用托腹带，保持正确坐姿和睡姿，必要时咨询康复师。' },
-  { q: '胎动多少次算正常？', a: '一般每天胎动次数在30-100次之间属于正常，建议每天固定时间数胎动，如有异常及时就医。' }
+export const centerFacilities = [
+  { title: '母婴照护体系', desc: '24h 护理值守与跨角色会诊，强调连续照护。', image: 'https://picsum.photos/seed/fac1_high/800/500' },
+  { title: '产后恢复模块', desc: '按体征与阶段推进恢复计划，减少恢复焦虑。', image: 'https://picsum.photos/seed/fac2_high/800/500' }
 ];

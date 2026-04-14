@@ -1,39 +1,44 @@
-﻿<template>
+<template>
   <view class="page detail-page">
     <view class="sticky-header">
       <view class="back" @click="goBack">
         <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
       </view>
-      <view class="head-title">{{ detail.title }}</view>
+      <view class="head-title">{{ detail?.title || '加载中...' }}</view>
     </view>
-    <image :src="detail.image" mode="widthFix" class="long-image" />
+    <image v-if="detail" :src="detail.detailImage" mode="widthFix" class="long-image" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
+import { getCenterSectionDetail } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
+import type { CenterSectionDetail } from '@/types/domain';
 
-const detail = ref({
-  title: '中心环境',
-  image: 'https://picsum.photos/seed/env_long/1080/3000'
-});
+const detail = ref<CenterSectionDetail | null>(null);
 
 function goBack() {
   uni.navigateBack();
 }
 
-onLoad((query) => {
-  const id = String(query.id || 'env');
+onLoad(async (query) => {
+  const id = String(query.id || '');
   trackPath(`中心详情:${id}`);
-  const map: Record<string, { title: string; image: string }> = {
-    env: { title: '中心环境', image: 'https://picsum.photos/seed/env_long/1080/3000' },
-    equip: { title: '护理设备', image: 'https://picsum.photos/seed/equip_long/1080/3000' },
-    meal: { title: '营养餐食', image: 'https://picsum.photos/seed/meal_long/1080/3000' },
-    team: { title: '专家团队', image: 'https://picsum.photos/seed/team_long/1080/3000' }
-  };
-  detail.value = map[id] || map.env;
+  
+  if (!id) {
+    uni.showToast({ title: '缺少ID参数', icon: 'none' });
+    return;
+  }
+  
+  try {
+    const res = await getCenterSectionDetail(id);
+    detail.value = res.data;
+  } catch (e) {
+    console.error('Failed to load section detail:', e);
+    uni.showToast({ title: '加载失败', icon: 'none' });
+  }
 });
 </script>
 

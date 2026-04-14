@@ -1,39 +1,86 @@
-﻿import { httpRequest } from '@/api/http';
-import type { ComplaintReq, EvaluationReq } from '@/types/api';
-import type { Coupon, PostpartumService, PresetQuestion, UserProfile } from '@/types/domain';
+import { httpRequest } from '@/api/http';
+import type { EvaluationReq, ComplaintReq, AiChatReq } from '@/types/api';
+import type { Coupon, PostpartumService, FaqCategory, FaqItem, ServiceHotlines, Suite } from '@/types/domain';
 
-export function getMemberProfile() {
-  return httpRequest<UserProfile>({ url: '/api/v1/member/profile' });
+export function getCurrentUser() {
+  return httpRequest<{
+    uid: string;
+    name: string;
+    avatar?: string;
+    phone?: string;
+    memberLevel?: string;
+    isLoggedIn: boolean;
+    pregnancyInfo?: { type: string; date: string };
+    tags?: string[];
+    lastActive: string;
+  }>({ url: '/api/v1/users/me' });
+}
+
+export function getMemberHome() {
+  return httpRequest<{
+    user: {
+      uid: string;
+      name: string;
+      avatar?: string;
+      memberLevel?: string;
+    };
+    magazines?: {
+      id: string;
+      title: string;
+      subtitle: string;
+      desc: string;
+      cover: string;
+    }[];
+    serviceEntries?: { id: string; label: string }[];
+    quickLinks?: { id: string; label: string }[];
+  }>({ url: '/api/v1/member/home' });
 }
 
 export function getMemberCoupons() {
   return httpRequest<Coupon[]>({ url: '/api/v1/member/coupons' });
 }
 
+export function getMemberPackages() {
+  return httpRequest<Suite[]>({ url: '/api/v1/member/packages' });
+}
+
 export function getPostpartumServices() {
   return httpRequest<PostpartumService[]>({ url: '/api/v1/member/postpartum-services' });
 }
 
-export function getFaqItems() {
-  return httpRequest<PresetQuestion[]>({ url: '/api/v1/member/faq' });
+export function getFaqCategories() {
+  return httpRequest<FaqCategory[]>({ url: '/api/v1/faq/categories' });
 }
 
-export function getPregnancyFaqItems() {
-  return httpRequest<PresetQuestion[]>({ url: '/api/v1/member/faq/pregnancy' });
+export function getFaqItems(categoryId: string) {
+  return httpRequest<FaqItem[]>({ url: `/api/v1/faq/items?categoryId=${categoryId}` });
+}
+
+export function getServiceHotlines() {
+  return httpRequest<ServiceHotlines>({ url: '/api/v1/service/hotlines' });
 }
 
 export function submitEvaluation(payload: EvaluationReq) {
-  return httpRequest<{ submitted: boolean }>({
-    url: '/api/v1/member/evaluations',
+  return httpRequest<{ evaluationId: string; submitted: boolean }>({
+    url: '/api/v1/feedback/evaluations',
     method: 'POST',
     data: payload
   });
 }
 
 export function submitComplaint(payload: ComplaintReq) {
-  return httpRequest<{ submitted: boolean }>({
-    url: '/api/v1/member/complaints',
+  return httpRequest<{ complaintId: string; submitted: boolean }>({
+    url: '/api/v1/feedback/complaints',
     method: 'POST',
     data: payload
+  });
+}
+
+export function aiChat(payload: AiChatReq, uid: string) {
+  return httpRequest<{ sessionId: string; content: string }>({
+    url: '/api/v1/ai/chat',
+    method: 'POST',
+    data: payload,
+    header: { 'X-Uid': uid }
   });
 }

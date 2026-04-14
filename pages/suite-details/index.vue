@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page suite-page">
     <view class="head">
       <view class="back" @click="goBack">
@@ -10,7 +10,7 @@
     <view class="list-wrap">
       <view class="suite-card" v-for="item in suites" :key="item.id" @click="openDetail(item)">
         <view class="suite-cover-wrap">
-          <image :src="item.images[0]" class="suite-cover" mode="aspectFill" />
+          <image :src="item.coverImage || item.images?.[0]" class="suite-cover" mode="aspectFill" />
           <view class="suite-cover-mask">沉浸式房型展示</view>
         </view>
         <view class="suite-body">
@@ -19,7 +19,7 @@
               <view class="suite-name">{{ item.name }}</view>
               <view class="suite-feat">{{ item.size }} / {{ item.features.join(' | ') }}</view>
             </view>
-            <view class="suite-price">{{ item.price }}</view>
+            <view class="suite-price">{{ item.priceLabel }}</view>
           </view>
           <button class="suite-btn">查看详情</button>
         </view>
@@ -29,20 +29,25 @@
     <view class="overlay" v-if="selected">
       <view class="detail-panel slide-in">
         <view class="detail-hero">
-          <image :src="selected.images[currentImageIndex]" class="detail-img" mode="aspectFill" />
+          <swiper 
+            class="detail-swiper" 
+            :autoplay="true" 
+            :circular="true" 
+            :interval="3000" 
+            :duration="500"
+            @change="onSwiperChange"
+            v-if="selected.images && selected.images.length > 0"
+          >
+            <swiper-item v-for="(img, index) in selected.images" :key="index">
+              <image :src="img" class="detail-img" mode="aspectFill" />
+            </swiper-item>
+          </swiper>
+          <image v-else :src="selected.coverImage" class="detail-img" mode="aspectFill" />
           <view class="hero-mask" />
           <view class="close" @click="selected = null">
             <image class="close-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
           </view>
-          <view class="carousel-controls">
-            <view class="ctrl" @click="prev">
-              <image class="ctrl-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
-            </view>
-            <view class="ctrl" @click="next">
-              <image class="ctrl-icon" src="/static/icons/arrow-right.svg" mode="aspectFit" />
-            </view>
-          </view>
-          <view class="indicators">
+          <view class="indicators" v-if="selected.images && selected.images.length > 1">
             <view class="ind" :class="{ active: index === currentImageIndex }" v-for="(_, index) in selected.images" :key="index" />
           </view>
         </view>
@@ -53,9 +58,15 @@
             <view class="detail-tags">
               <text class="tag" v-for="f in selected.features" :key="f">{{ f }}</text>
             </view>
-            <view class="detail-price">{{ selected.price }}</view>
+            <view class="detail-price">{{ selected.priceLabel }}</view>
             <view class="detail-desc">
-              基于产后阶段和家庭需求提供套房级照护计划，包含空间服务、营养餐食、护理响应与康复课程配置。
+              {{ selected.description || '基于产后阶段和家庭需求提供套房级照护计划，包含空间服务、营养餐食、护理响应与康复课程配置。' }}
+            </view>
+            <view class="facilities-section" v-if="selected.facilities && selected.facilities.length > 0">
+              <view class="section-title">配套设施</view>
+              <view class="facilities-list">
+                <text class="facility-tag" v-for="f in selected.facilities" :key="f">{{ f }}</text>
+              </view>
             </view>
             <button class="book-btn">预约到店顾问</button>
           </view>
@@ -68,7 +79,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getSuites } from '@/api/modules/center';
+import { getSuites, getSuiteDetail } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
 import type { Suite } from '@/types/domain';
 
@@ -80,26 +91,28 @@ function goBack() {
   uni.navigateBack();
 }
 
-function openDetail(item: Suite) {
-  selected.value = item;
+async function openDetail(item: Suite) {
+  try {
+    const res = await getSuiteDetail(item.id);
+    selected.value = res.data;
+  } catch (e) {
+    selected.value = item;
+  }
   currentImageIndex.value = 0;
 }
 
-function prev() {
-  if (!selected.value) return;
-  const total = selected.value.images.length;
-  currentImageIndex.value = (currentImageIndex.value - 1 + total) % total;
-}
-
-function next() {
-  if (!selected.value) return;
-  const total = selected.value.images.length;
-  currentImageIndex.value = (currentImageIndex.value + 1) % total;
+function onSwiperChange(e: any) {
+  currentImageIndex.value = e.detail.current;
 }
 
 onLoad(async () => {
   trackPath('套房详情');
-  suites.value = (await getSuites()).data;
+  try {
+    const res = await getSuites();
+    suites.value = res.data;
+  } catch (e) {
+    console.error('Failed to load suites:', e);
+  }
 });
 </script>
 
@@ -112,7 +125,7 @@ onLoad(async () => {
 .head {
   display: flex;
   align-items: center;
-  padding: var(--top-safe-offset) 24rpx 16rpx;
+  padding: calc(var(--top-safe-offset) + 24rpx) 24rpx 16rpx;
 }
 
 .back {
@@ -127,7 +140,7 @@ onLoad(async () => {
 }
 
 .head-title {
-  font-size: 34rpx;
+  font-size: 36rpx;
   color: #111827;
   letter-spacing: 5rpx;
 }
@@ -160,7 +173,7 @@ onLoad(async () => {
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 22rpx;
+  font-size: 24rpx;
   letter-spacing: 3rpx;
   background: rgba(0, 0, 0, 0.2);
 }
@@ -176,19 +189,19 @@ onLoad(async () => {
 }
 
 .suite-name {
-  font-size: 32rpx;
+  font-size: 34rpx;
   color: #111827;
 }
 
 .suite-feat {
   margin-top: 8rpx;
-  font-size: 23rpx;
+  font-size: 25rpx;
   color: #6b7280;
   line-height: 1.6;
 }
 
 .suite-price {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #111827;
 }
 
@@ -197,7 +210,7 @@ onLoad(async () => {
   min-height: 78rpx;
   background: #111827;
   color: #fff;
-  font-size: 24rpx;
+  font-size: 26rpx;
   letter-spacing: 4rpx;
 }
 
@@ -230,20 +243,22 @@ onLoad(async () => {
 
 .hero-mask {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.16));
+  pointer-events: none;
 }
 
 .close {
   position: absolute;
-  left: 20rpx;
-  top: var(--top-safe-offset-compact);
-  min-width: 90rpx;
-  height: 56rpx;
+  left: 28rpx;
+  top: calc(var(--top-safe-offset-compact) + 8rpx);
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.28);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
 }
 
 .close-icon {
@@ -252,31 +267,11 @@ onLoad(async () => {
   filter: brightness(0) invert(1);
 }
 
-.carousel-controls {
+.detail-swiper {
   position: absolute;
   inset: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 14rpx;
-}
-
-.ctrl {
-  min-width: 90rpx;
-  height: 58rpx;
-  border-radius: 12rpx;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10rpx;
-}
-
-.ctrl-icon {
-  width: 28rpx;
-  height: 28rpx;
-  filter: brightness(0) invert(1);
+  width: 100%;
+  height: 100%;
 }
 
 .indicators {
@@ -286,6 +281,7 @@ onLoad(async () => {
   transform: translateX(-50%);
   display: flex;
   gap: 8rpx;
+  pointer-events: auto;
 }
 
 .ind {
@@ -308,7 +304,7 @@ onLoad(async () => {
 }
 
 .detail-title {
-  font-size: 40rpx;
+  font-size: 42rpx;
   letter-spacing: 5rpx;
   color: #111827;
 }
@@ -324,21 +320,45 @@ onLoad(async () => {
   background: #fff;
   border: 1rpx solid rgba(17, 24, 39, 0.12);
   color: #6b7280;
-  font-size: 22rpx;
+  font-size: 24rpx;
   padding: 8rpx 14rpx;
 }
 
 .detail-price {
   margin-top: 20rpx;
-  font-size: 34rpx;
+  font-size: 36rpx;
   color: #111827;
 }
 
 .detail-desc {
   margin-top: 16rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #6b7280;
   line-height: 1.8;
+}
+
+.facilities-section {
+  margin-top: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #111827;
+  margin-bottom: 12rpx;
+}
+
+.facilities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.facility-tag {
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 24rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 4rpx;
 }
 
 .book-btn {
@@ -347,7 +367,7 @@ onLoad(async () => {
   min-height: 92rpx;
   background: #111827;
   color: #fff;
-  font-size: 28rpx;
+  font-size: 30rpx;
   letter-spacing: 4rpx;
 }
 

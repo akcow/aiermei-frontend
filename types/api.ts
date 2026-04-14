@@ -1,4 +1,4 @@
-﻿export interface ApiResponse<T> {
+export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
@@ -10,10 +10,14 @@ export interface Pagination<T> {
   total: number;
   page: number;
   pageSize: number;
+  hasMore?: boolean;
 }
 
 export interface WechatLoginReq {
   code: string;
+  encryptedPhoneData?: string;
+  iv?: string;
+  redirectUri?: string;
 }
 
 export interface WechatLoginResp {
@@ -23,11 +27,42 @@ export interface WechatLoginResp {
 }
 
 export interface EvaluationReq {
-  type: string;
-  content: string;
+  orderId?: string;
+  score: number;
+  content?: string;
+  anonymous?: boolean;
 }
 
 export interface ComplaintReq {
-  type: string;
+  contactName?: string;
+  phone?: string;
   content: string;
+  relatedService?: string;
+  complaintType?: 'SERVICE_QUALITY' | 'FACILITY_ENVIRONMENT' | 'CATERING_SUGGESTION' | 'OTHER';
+}
+
+export interface AiChatReq {
+  sessionId?: string;
+  message: string;
+}
+
+export interface AiChatStartEvent {
+  sessionId: string;
+}
+
+export interface AiChatDeltaEvent {
+  content: string;
+}
+
+export interface AiChatSuggestionEvent {
+  items: string[];
+}
+
+export interface AiChatDoneEvent {
+  finishReason: string;
+}
+
+export interface AiChatErrorEvent {
+  code: number;
+  message: string;
 }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page content-page">
     <view class="content-head">
       <view class="title">内容中心</view>
@@ -11,17 +11,17 @@
             <view class="fortune-title">今日好运签</view>
             <view class="fortune-sub">Daily Fortune</view>
           </view>
-          <view class="fortune-date">11 Apr</view>
+          <view class="fortune-date">{{ formatDate(fortune?.date) }}</view>
         </view>
         <view class="fortune-grid">
           <view class="fortune-col">
             <view class="small-label">宜</view>
-            <view class="small-text">放松训练 / 营养复盘</view>
+            <view class="small-text">{{ fortune?.suitable || '放松训练' }}</view>
           </view>
           <view class="divider" />
           <view class="fortune-col">
             <view class="small-label">忌</view>
-            <view class="small-text">焦虑熬夜 / 过量补品</view>
+            <view class="small-text">{{ fortune?.avoid || '焦虑熬夜' }}</view>
           </view>
         </view>
         <view class="fortune-text">{{ typedGreeting }}</view>
@@ -35,10 +35,10 @@
 
       <view class="qa-list">
         <view class="qa-item" v-for="(item, idx) in questions.slice(0, 2)" :key="idx" @click="openQa(item)">
-          <text class="qa-q">{{ item.q }}</text>
+          <text class="qa-q">{{ item.question }}</text>
           <image class="qa-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
-        <view class="qa-ai" @click="isAIChatOpen = true">
+        <view class="qa-ai" @click="openAIChat">
           <view class="qa-ai-left">AI 专家对话</view>
           <image class="qa-arrow white" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
@@ -50,14 +50,14 @@
           :class="{ active: activeTab === tab.id }"
           v-for="tab in tabs"
           :key="tab.id"
-          @click="activeTab = tab.id"
+          @click="switchTab(tab.id)"
         >
           {{ tab.label }}
         </view>
       </view>
 
       <view class="article-list">
-        <view class="article-card reveal" v-for="item in filtered" :key="item.id">
+        <view class="article-card reveal" v-for="item in articles" :key="item.id" @click="openArticle(item.id)">
           <view class="cover-wrap">
             <image :src="item.cover" mode="aspectFill" class="cover" />
             <view v-if="item.type === 'video'" class="play">
@@ -77,8 +77,8 @@
         <view class="modal-close" @click="selectedQa = null">
           <image class="close-icon" src="/static/icons/close.svg" mode="aspectFit" />
         </view>
-        <view class="modal-q">{{ selectedQa?.q }}</view>
-        <view class="modal-a">{{ selectedQa?.a }}</view>
+        <view class="modal-q">{{ selectedQa?.question }}</view>
+        <view class="modal-a">{{ selectedQa?.answer }}</view>
         <button class="primary-btn modal-btn" @click="selectedQa = null">知道了</button>
       </view>
     </view>
@@ -86,11 +86,11 @@
     <view class="ai-drawer" :class="{ open: isAIChatOpen }">
       <view class="ai-header">
         <view class="ai-title">AI 专家问答</view>
-        <view class="modal-close" @click="isAIChatOpen = false">
+        <view class="modal-close" @click="closeAIChat">
           <image class="close-icon" src="/static/icons/close.svg" mode="aspectFit" />
         </view>
       </view>
-      <scroll-view scroll-y class="ai-messages">
+      <scroll-view scroll-y class="ai-messages" :scroll-top="scrollTop">
         <view class="msg" :class="m.role" v-for="(m, i) in messages" :key="i">{{ m.text }}</view>
       </scroll-view>
       <view class="ai-preset-row">
@@ -109,44 +109,100 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
 import BottomNav from '@/components/BottomNav.vue';
-import { getContentFeed, getPresetQuestions } from '@/api/modules/content';
+import { getTodayFortune, getPresetQuestions, getArticles } from '@/api/modules/content';
+import { createSSEConnection, type SSEEvent } from '@/api/http';
+import { getLocalProfile } from '@/store/session';
 import { trackPath } from '@/store/session';
-import type { ContentItem, PresetQuestion } from '@/types/domain';
+import type { ContentItem, FortuneCard, PresetQuestion } from '@/types/domain';
 
 const activeTab = ref('pregnancy');
 const tabs = [
   { id: 'pregnancy', label: '孕期' },
-  { id: 'postpartum', label: '产后' },
+  { id: 'postpartum', label: '月子' },
   { id: 'parenting', label: '育儿' },
   { id: 'nanny', label: '月嫂' }
 ];
 
-const feed = ref<ContentItem[]>([]);
+const fortune = ref<FortuneCard | null>(null);
+const articles = ref<ContentItem[]>([]);
 const questions = ref<PresetQuestion[]>([]);
 const selectedQa = ref<PresetQuestion | null>(null);
 const isAIChatOpen = ref(false);
 
-const greeting = '根据你最近浏览路径，建议本周优先关注产后修复课程与夜间喂养节律，先稳定作息再推进进阶训练。';
 const typedGreeting = ref('');
 let typingTimer: ReturnType<typeof setInterval> | null = null;
 
-const messages = ref([
-  { role: 'ai', text: '你好，我是你的产后照护助手。' },
-  { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
-]);
+const messages = ref<{ role: string; text: string }[]>([]);
 const input = ref('');
+const scrollTop = ref(0);
 const presets = ['剖宫产后多久能做康复？', '新生儿作息怎么建立？', '怎么选月子套餐？'];
 
-const filtered = computed(() => feed.value.filter((x) => x.category === activeTab.value));
+let sseConnection: UniApp.RequestTask | null = null;
+let currentSessionId: string | null = null;
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) {
+    return `${parseInt(parts[2])} ${getMonthShort(parts[1])}`;
+  }
+  return dateStr;
+}
+
+function getMonthShort(month: string): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[parseInt(month) - 1] || month;
+}
+
+async function switchTab(tabId: string) {
+  activeTab.value = tabId;
+  await loadArticles(tabId);
+}
+
+async function loadArticles(category: string) {
+  try {
+    const res = await getArticles(category, 1, 10);
+    articles.value = res.data.list;
+  } catch (e) {
+    console.error('Failed to load articles:', e);
+  }
+}
 
 function openQa(item: PresetQuestion) {
   selectedQa.value = item;
 }
 
-function startTyping() {
+function openArticle(articleId: string) {
+  uni.navigateTo({ url: `/pages/content/article?id=${articleId}` });
+}
+
+function openAIChat() {
+  const profile = getLocalProfile();
+  if (!profile.isLoggedIn) {
+    uni.showToast({ title: '请先登录', icon: 'none' });
+    return;
+  }
+  isAIChatOpen.value = true;
+  if (messages.value.length === 0) {
+    messages.value = [
+      { role: 'ai', text: '你好，我是你的产后照护助手。' },
+      { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
+    ];
+  }
+}
+
+function closeAIChat() {
+  isAIChatOpen.value = false;
+  if (sseConnection) {
+    sseConnection.abort();
+    sseConnection = null;
+  }
+}
+
+function startTyping(greeting: string) {
   typedGreeting.value = '';
   let idx = 0;
   if (typingTimer) {
@@ -164,29 +220,104 @@ function startTyping() {
   }, 42);
 }
 
-function send() {
+async function send() {
   const text = input.value.trim();
-  if (!text) {
+  if (!text) return;
+
+  const profile = getLocalProfile();
+  if (!profile.isLoggedIn) {
+    uni.showToast({ title: '请先登录', icon: 'none' });
     return;
   }
+
   messages.value.push({ role: 'user', text });
   input.value = '';
-  setTimeout(() => {
-    messages.value.push({ role: 'ai', text: '已收到，你的情况建议先做基础评估，再安排个性化方案。' });
-  }, 400);
+
+  const aiMessageIndex = messages.value.length;
+  messages.value.push({ role: 'ai', text: '' });
+
+  try {
+    const requestData: { sessionId?: string; message: string } = { message: text };
+    if (currentSessionId) {
+      requestData.sessionId = currentSessionId;
+    }
+
+    sseConnection = createSSEConnection({
+      url: '/api/v1/ai/chat',
+      data: requestData,
+      header: { 'X-Uid': profile.uid },
+      onEvent: (event: SSEEvent) => {
+        handleSSEEvent(event, aiMessageIndex);
+      },
+      onError: (error) => {
+        messages.value[aiMessageIndex].text = '抱歉，连接出现问题，请稍后重试。';
+      },
+      onComplete: () => {
+        sseConnection = null;
+      }
+    });
+  } catch (e) {
+    messages.value[aiMessageIndex].text = '抱歉，发送失败，请稍后重试。';
+  }
+}
+
+function handleSSEEvent(event: SSEEvent, messageIndex: number) {
+  switch (event.event) {
+    case 'start':
+      currentSessionId = event.data.sessionId;
+      break;
+    case 'delta':
+      messages.value[messageIndex].text += event.data.content;
+      scrollToBottom();
+      break;
+    case 'suggestion':
+      // 可以在消息末尾添加推荐问题
+      break;
+    case 'done':
+      sseConnection?.abort();
+      sseConnection = null;
+      break;
+    case 'error':
+      messages.value[messageIndex].text = `错误: ${event.data.message}`;
+      sseConnection?.abort();
+      sseConnection = null;
+      break;
+  }
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    scrollTop.value = scrollTop.value + 100;
+  });
 }
 
 onLoad(async () => {
   trackPath('内容中心');
-  const [feedRes, qRes] = await Promise.all([getContentFeed(), getPresetQuestions()]);
-  feed.value = feedRes.data.list;
+  
+  // 并行加载所有数据
+  const [fortuneRes, qRes, articlesRes] = await Promise.all([
+    getTodayFortune().catch(() => ({ data: null, code: 0, message: '' })),
+    getPresetQuestions(2).catch(() => ({ data: [], code: 0, message: '' })),
+    getArticles(activeTab.value, 1, 10).catch(() => ({ data: { list: [], total: 0, page: 1, pageSize: 10 }, code: 0, message: '' }))
+  ]);
+  
+  fortune.value = fortuneRes.data;
   questions.value = qRes.data;
-  startTyping();
+  articles.value = articlesRes.data.list;
+
+  if (fortune.value?.greeting) {
+    startTyping(fortune.value.greeting);
+  } else {
+    startTyping('根据你最近浏览路径，建议本周优先关注产后修复课程与夜间喂养节律。');
+  }
 });
 
 onUnload(() => {
   if (typingTimer) {
     clearInterval(typingTimer);
+  }
+  if (sseConnection) {
+    sseConnection.abort();
   }
 });
 </script>

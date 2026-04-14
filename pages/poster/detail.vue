@@ -1,15 +1,15 @@
-﻿<template>
+<template>
   <view class="page">
     <view class="poster-cover">
-      <image :src="detail.image" mode="aspectFill" class="cover-image" />
+      <image :src="detail.image || detail.cover" mode="aspectFill" class="cover-image" />
       <view class="back" @click="goBack">
         <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
       </view>
     </view>
 
     <view class="content">
-      <view class="title">{{ detail.detailTitle }}</view>
-      <view class="desc">{{ detail.detailContent }}</view>
+      <view class="title">{{ detail.title }}</view>
+      <view class="desc">{{ detail.content }}</view>
     </view>
 
     <view class="actions">
@@ -20,7 +20,7 @@
     <view v-if="showQr" class="overlay" @click="showQr = false">
       <view class="qr-box" @click.stop>
         <view class="qr-title">扫码预约顾问</view>
-        <image class="qr" src="https://picsum.photos/seed/qr/360/360" mode="aspectFill" />
+        <image class="qr" :src="qrCodeUrl" mode="aspectFill" />
         <button class="primary-btn" @click="showQr = false">我知道了</button>
       </view>
     </view>
@@ -30,18 +30,17 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getPosterDetail } from '@/api/modules/center';
+import { getBannerDetail, getAppointmentQrCode } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
-import type { Banner } from '@/types/domain';
+import type { BannerDetail } from '@/types/domain';
 
 const showQr = ref(false);
-const detail = ref<Banner>({
+const qrCodeUrl = ref('https://picsum.photos/seed/qr/360/360');
+const detail = ref<BannerDetail>({
   id: '0',
   title: '',
-  buttonText: '',
-  image: 'https://picsum.photos/seed/detail/800/1200',
-  detailTitle: '',
-  detailContent: ''
+  content: '',
+  image: 'https://picsum.photos/seed/detail/800/1200'
 });
 
 function goBack() {
@@ -55,8 +54,20 @@ function goCenter() {
 onLoad(async (query) => {
   const id = String(query.id || '1');
   trackPath(`海报详情:${id}`);
-  const res = await getPosterDetail(id);
-  detail.value = res.data;
+  
+  try {
+    const [detailRes, qrRes] = await Promise.all([
+      getBannerDetail(id),
+      getAppointmentQrCode('banner', id).catch(() => null)
+    ]);
+    
+    detail.value = detailRes.data;
+    if (qrRes?.data?.qrCodeUrl) {
+      qrCodeUrl.value = qrRes.data.qrCodeUrl;
+    }
+  } catch (e) {
+    console.error('Failed to load poster detail:', e);
+  }
 });
 </script>
 

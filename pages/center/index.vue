@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <view class="page center-page">
     <view class="hero">
-      <image class="hero-image" src="https://picsum.photos/seed/storefront/1080/1920" mode="aspectFill" />
+      <image class="hero-image" :src="centerHome?.heroImage || 'https://picsum.photos/seed/storefront/1080/1920'" mode="aspectFill" />
       <view class="hero-mask" />
       <view class="hero-inner fade-up">
-        <view class="hero-brand">AI ER MEI</view>
-        <view class="hero-sub">RESIDENCES</view>
+        <view class="hero-brand">{{ centerHome?.brandTitle || 'AI ER MEI' }}</view>
+        <view class="hero-sub">{{ centerHome?.brandSubtitle || 'RESIDENCES' }}</view>
       </view>
       <view class="scroll-hint bounce">
         <image class="hint-icon" src="/static/icons/arrow-down.svg" mode="aspectFit" />
@@ -21,7 +21,7 @@
             :key="item.id"
             @click="openSection(item.id)"
           >
-            <image :src="item.image" mode="aspectFill" class="section-image" />
+            <image :src="item.coverImage" mode="aspectFill" class="section-image" />
             <view class="section-overlay" />
             <view class="section-meta">
               <view class="section-title-text">{{ item.title }}</view>
@@ -42,7 +42,7 @@
         <view class="line" />
       </view>
 
-      <view class="facility-block reveal" v-for="item in facilities" :key="item.title">
+      <view class="facility-block reveal" v-for="item in facilities" :key="item.id">
         <image :src="item.image" mode="aspectFill" class="facility-image" />
         <view class="facility-title">{{ item.title }}</view>
         <view class="facility-desc">{{ item.desc }}</view>
@@ -56,10 +56,10 @@
 
       <view class="suite-list">
         <view class="suite-row reveal" v-for="item in suites" :key="item.id" @click="openSuite(item.id)">
-          <image :src="item.images[0]" class="suite-thumb" mode="aspectFill" />
+          <image :src="item.coverImage || item.images?.[0]" class="suite-thumb" mode="aspectFill" />
           <view class="suite-info">
             <view class="suite-name">{{ item.name }}</view>
-            <view class="suite-price">{{ item.price }}</view>
+            <view class="suite-price">{{ item.priceLabel }}</view>
             <view class="suite-feat">{{ item.features.slice(0, 2).join(' / ') }}</view>
           </view>
           <image class="arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
@@ -75,13 +75,13 @@
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import BottomNav from '@/components/BottomNav.vue';
-import { centerFacilities, centerSections } from '@/mock/data';
-import { getSuites } from '@/api/modules/center';
+import { getCenterHome, getCenterSections, getSuites } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
-import type { Suite } from '@/types/domain';
+import type { Suite, CenterSection, CenterHome } from '@/types/domain';
 
-const sections = centerSections;
-const facilities = centerFacilities;
+const centerHome = ref<CenterHome | null>(null);
+const sections = ref<CenterSection[]>([]);
+const facilities = ref<{ id: string; title: string; desc: string; image: string }[]>([]);
 const suites = ref<Suite[]>([]);
 
 function openSection(id: string) {
@@ -96,7 +96,21 @@ function openSuite(id: string) {
 
 onLoad(async () => {
   trackPath('中心首页');
-  suites.value = (await getSuites()).data;
+  
+  try {
+    const [homeRes, sectionsRes, suitesRes] = await Promise.all([
+      getCenterHome(),
+      getCenterSections(),
+      getSuites()
+    ]);
+    
+    centerHome.value = homeRes.data;
+    sections.value = sectionsRes.data;
+    facilities.value = homeRes.data.facilities || [];
+    suites.value = suitesRes.data;
+  } catch (e) {
+    console.error('Failed to load center data:', e);
+  }
 });
 </script>
 

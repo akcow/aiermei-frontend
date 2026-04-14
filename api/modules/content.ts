@@ -1,11 +1,26 @@
-﻿import { httpRequest } from '@/api/http';
+import { httpRequest } from '@/api/http';
 import type { Pagination } from '@/types/api';
-import type { ContentItem, PresetQuestion } from '@/types/domain';
+import type { ContentItem, ContentCategoryItem, FortuneCard, PresetQuestion } from '@/types/domain';
 
-export function getContentFeed() {
-  return httpRequest<Pagination<ContentItem>>({ url: '/api/v1/content/feed' });
+export function getContentCategories() {
+  return httpRequest<ContentCategoryItem[]>({ url: '/api/v1/content/categories' });
 }
 
-export function getPresetQuestions() {
-  return httpRequest<PresetQuestion[]>({ url: '/api/v1/content/questions/preset' });
+export function getArticles(category: string, page: number = 1, pageSize: number = 10) {
+  return httpRequest<Pagination<ContentItem>>({
+    url: `/api/v1/content/articles?category=${category}&page=${page}&pageSize=${pageSize}`
+  });
+}
+
+export function getArticleDetail(articleId: string) {
+  return httpRequest<ContentItem>({ url: `/api/v1/content/articles/${articleId}` });
+}
+
+export function getTodayFortune() {
+  return httpRequest<FortuneCard>({ url: '/api/v1/content/fortune/today' });
+}
+
+export function getPresetQuestions(limit?: number) {
+  const query = limit ? `?limit=${limit}` : '';
+  return httpRequest<PresetQuestion[]>({ url: `/api/v1/content/preset-questions${query}` });
 }
