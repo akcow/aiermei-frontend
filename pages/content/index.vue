@@ -1,27 +1,27 @@
-﻿<template>
+<template>
   <view class="page content-page">
     <view class="content-head">
-      <view class="title">内容中心</view>
+      <view class="title">Content Hub</view>
     </view>
 
     <view class="main-wrap">
       <view class="fortune-card fade-in">
         <view class="fortune-top">
           <view>
-            <view class="fortune-title">今日好运签</view>
+            <view class="fortune-title">Today Fortune</view>
             <view class="fortune-sub">Daily Fortune</view>
           </view>
-          <view class="fortune-date">11 Apr</view>
+          <view class="fortune-date">{{ fortuneDateLabel }}</view>
         </view>
         <view class="fortune-grid">
           <view class="fortune-col">
-            <view class="small-label">宜</view>
-            <view class="small-text">放松训练 / 营养复盘</view>
+            <view class="small-label">Do</view>
+            <view class="small-text">{{ fortune.suitable || '-' }}</view>
           </view>
           <view class="divider" />
           <view class="fortune-col">
-            <view class="small-label">忌</view>
-            <view class="small-text">焦虑熬夜 / 过量补品</view>
+            <view class="small-label">Avoid</view>
+            <view class="small-text">{{ fortune.avoid || '-' }}</view>
           </view>
         </view>
         <view class="fortune-text">{{ typedGreeting }}</view>
@@ -29,17 +29,17 @@
 
       <view class="qa-head">
         <view class="line" />
-        <text>AI 问答精选</text>
+        <text>AI Picks</text>
         <view class="line" />
       </view>
 
       <view class="qa-list">
-        <view class="qa-item" v-for="(item, idx) in questions.slice(0, 2)" :key="idx" @click="openQa(item)">
-          <text class="qa-q">{{ item.q }}</text>
+        <view class="qa-item" v-for="(item, idx) in questions.slice(0, 2)" :key="item.id || idx" @click="openQa(item)">
+          <text class="qa-q">{{ item.question }}</text>
           <image class="qa-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
         <view class="qa-ai" @click="isAIChatOpen = true">
-          <view class="qa-ai-left">AI 专家对话</view>
+          <view class="qa-ai-left">AI Expert Chat</view>
           <image class="qa-arrow white" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
       </view>
@@ -50,14 +50,14 @@
           :class="{ active: activeTab === tab.id }"
           v-for="tab in tabs"
           :key="tab.id"
-          @click="activeTab = tab.id"
+          @click="switchTab(tab.id)"
         >
           {{ tab.label }}
         </view>
       </view>
 
       <view class="article-list">
-        <view class="article-card reveal" v-for="item in filtered" :key="item.id">
+        <view class="article-card reveal" v-for="item in filtered" :key="item.id" @click="openArticle(item)">
           <view class="cover-wrap">
             <image :src="item.cover" mode="aspectFill" class="cover" />
             <view v-if="item.type === 'video'" class="play">
@@ -77,15 +77,15 @@
         <view class="modal-close" @click="selectedQa = null">
           <image class="close-icon" src="/static/icons/close.svg" mode="aspectFit" />
         </view>
-        <view class="modal-q">{{ selectedQa?.q }}</view>
-        <view class="modal-a">{{ selectedQa?.a }}</view>
-        <button class="primary-btn modal-btn" @click="selectedQa = null">知道了</button>
+        <view class="modal-q">{{ selectedQa?.question }}</view>
+        <view class="modal-a">{{ selectedQa?.answer }}</view>
+        <button class="primary-btn modal-btn" @click="selectedQa = null">Close</button>
       </view>
     </view>
 
     <view class="ai-drawer" :class="{ open: isAIChatOpen }">
       <view class="ai-header">
-        <view class="ai-title">AI 专家问答</view>
+        <view class="ai-title">AI Expert</view>
         <view class="modal-close" @click="isAIChatOpen = false">
           <image class="close-icon" src="/static/icons/close.svg" mode="aspectFit" />
         </view>
@@ -97,7 +97,7 @@
         <text class="preset" v-for="(p, i) in presets" :key="i" @click="input = p">{{ p }}</text>
       </view>
       <view class="ai-input-row">
-        <input class="ai-input" v-model="input" placeholder="输入你的问题..." confirm-type="send" @confirm="send" />
+        <input class="ai-input" v-model="input" placeholder="Type your question..." confirm-type="send" @confirm="send" />
         <view class="send" @click="send">
           <image class="send-icon" src="/static/icons/send.svg" mode="aspectFit" />
         </view>
@@ -112,76 +112,174 @@
 import { computed, ref } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
 import BottomNav from '@/components/BottomNav.vue';
-import { getContentFeed, getPresetQuestions } from '@/api/modules/content';
+import {
+  chatWithAiStream,
+  getContentArticles,
+  getContentCategories,
+  getPresetQuestions,
+  getTodayFortune
+} from '@/api/modules/content';
 import { trackPath } from '@/store/session';
-import type { ContentItem, PresetQuestion } from '@/types/domain';
+import type { ContentCategoryItem, ContentItem, FortuneCard, PresetQuestion } from '@/types/domain';
 
-const activeTab = ref('pregnancy');
-const tabs = [
-  { id: 'pregnancy', label: '孕期' },
-  { id: 'postpartum', label: '产后' },
-  { id: 'parenting', label: '育儿' },
-  { id: 'nanny', label: '月嫂' }
-];
-
-const feed = ref<ContentItem[]>([]);
+const fortune = ref<FortuneCard>({
+  date: '',
+  suitable: '',
+  avoid: '',
+  greeting: ''
+});
+const typedGreeting = ref('');
 const questions = ref<PresetQuestion[]>([]);
 const selectedQa = ref<PresetQuestion | null>(null);
 const isAIChatOpen = ref(false);
 
-const greeting = '根据你最近浏览路径，建议本周优先关注产后修复课程与夜间喂养节律，先稳定作息再推进进阶训练。';
-const typedGreeting = ref('');
+const categories = ref<ContentCategoryItem[]>([]);
+const activeTab = ref('');
+const articleMap = ref<Record<string, ContentItem[]>>({});
+const loadingArticles = ref(false);
+
+const tabs = computed(() => categories.value);
+const filtered = computed(() => articleMap.value[activeTab.value] || []);
+
+const messages = ref<{ role: 'ai' | 'user'; text: string }[]>([{ role: 'ai', text: 'Hi, ask me anything about care plans.' }]);
+const input = ref('');
+const presets = ref<string[]>([]);
+const aiSessionId = ref('');
+const isStreaming = ref(false);
 let typingTimer: ReturnType<typeof setInterval> | null = null;
 
-const messages = ref([
-  { role: 'ai', text: '你好，我是你的产后照护助手。' },
-  { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
-]);
-const input = ref('');
-const presets = ['剖宫产后多久能做康复？', '新生儿作息怎么建立？', '怎么选月子套餐？'];
-
-const filtered = computed(() => feed.value.filter((x) => x.category === activeTab.value));
+const fortuneDateLabel = computed(() => {
+  if (!fortune.value.date) {
+    return '--';
+  }
+  const date = new Date(`${fortune.value.date}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return fortune.value.date;
+  }
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+});
 
 function openQa(item: PresetQuestion) {
   selectedQa.value = item;
 }
 
-function startTyping() {
+function startTyping(text: string) {
   typedGreeting.value = '';
+  if (!text) {
+    return;
+  }
   let idx = 0;
   if (typingTimer) {
     clearInterval(typingTimer);
   }
   typingTimer = setInterval(() => {
-    if (idx >= greeting.length) {
+    if (idx >= text.length) {
       if (typingTimer) {
         clearInterval(typingTimer);
       }
       return;
     }
-    typedGreeting.value += greeting[idx];
+    typedGreeting.value += text[idx];
     idx += 1;
   }, 42);
 }
 
-function send() {
-  const text = input.value.trim();
-  if (!text) {
+async function loadArticles(categoryId: string) {
+  if (!categoryId || articleMap.value[categoryId] || loadingArticles.value) {
     return;
   }
+  loadingArticles.value = true;
+  try {
+    const result = await getContentArticles(categoryId, 1, 30);
+    articleMap.value = {
+      ...articleMap.value,
+      [categoryId]: result.data.list || []
+    };
+  } finally {
+    loadingArticles.value = false;
+  }
+}
+
+async function switchTab(categoryId: string) {
+  activeTab.value = categoryId;
+  await loadArticles(categoryId);
+}
+
+function openArticle(item: ContentItem) {
+  if (!item.mediaUrl) {
+    uni.showToast({ title: 'Missing article url', icon: 'none' });
+    return;
+  }
+  const url = encodeURIComponent(item.mediaUrl);
+  const title = encodeURIComponent(item.title);
+  const type = encodeURIComponent(item.type || '');
+  const cover = encodeURIComponent(item.cover || '');
+  uni.navigateTo({ url: `/pages/content/article?url=${url}&title=${title}&type=${type}&cover=${cover}` });
+}
+
+async function send() {
+  const text = input.value.trim();
+  if (!text || isStreaming.value) {
+    return;
+  }
+
   messages.value.push({ role: 'user', text });
   input.value = '';
-  setTimeout(() => {
-    messages.value.push({ role: 'ai', text: '已收到，你的情况建议先做基础评估，再安排个性化方案。' });
-  }, 400);
+  const replyIndex = messages.value.push({ role: 'ai', text: '' }) - 1;
+  isStreaming.value = true;
+
+  try {
+    await chatWithAiStream(
+      { sessionId: aiSessionId.value || undefined, message: text },
+      {
+        onSessionId: (sessionId) => {
+          aiSessionId.value = sessionId;
+        },
+        onMessage: (chunk) => {
+          messages.value[replyIndex].text += chunk;
+        },
+        onError: (message) => {
+          if (!messages.value[replyIndex].text) {
+            messages.value[replyIndex].text = message;
+          }
+        }
+      }
+    );
+    if (!messages.value[replyIndex].text) {
+      messages.value[replyIndex].text = 'No response received. Please retry.';
+    }
+  } catch {
+    if (!messages.value[replyIndex].text) {
+      messages.value[replyIndex].text = 'Request failed. Please retry.';
+    }
+  } finally {
+    isStreaming.value = false;
+  }
 }
 
 onLoad(async () => {
-  trackPath('内容中心');
-  const [feedRes, qRes] = await Promise.all([getContentFeed(), getPresetQuestions()]);
-  feed.value = feedRes.data.list;
-  questions.value = qRes.data;
-  startTyping();
+  trackPath('content');
+  try {
+    const [fortuneRes, qRes, categoryRes] = await Promise.all([
+      getTodayFortune(),
+      getPresetQuestions(6),
+      getContentCategories()
+    ]);
+
+    fortune.value = fortuneRes.data || fortune.value;
+    startTyping(fortune.value.greeting || '');
+
+    questions.value = qRes.data || [];
+    presets.value = questions.value.slice(0, 3).map((item) => item.question);
+
+    categories.value = categoryRes.data || [];
+    if (categories.value.length) {
+      activeTab.value = categories.value[0].id;
+      await loadArticles(activeTab.value);
+    }
+  } catch {
+    uni.showToast({ title: 'Content load failed', icon: 'none' });
+  }
 });
 
 onUnload(() => {
@@ -238,7 +336,7 @@ onUnload(() => {
 }
 
 .fortune-date {
-  font-size: 40rpx;
+  font-size: 34rpx;
   color: #fb7185;
 }
 
@@ -267,14 +365,14 @@ onUnload(() => {
 .small-text {
   font-size: 28rpx;
   color: #4b5563;
-  line-height: 2.4;
+  line-height: 2;
 }
 
 .fortune-text {
   margin-top: 30rpx;
-  min-height: 180rpx;
+  min-height: 130rpx;
   font-size: 32rpx;
-  line-height: 2.5;
+  line-height: 2.2;
   color: #6b7280;
 }
 
@@ -392,7 +490,6 @@ onUnload(() => {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: #fff;
   width: 82rpx;
   height: 82rpx;
   border-radius: 50%;
@@ -523,6 +620,7 @@ onUnload(() => {
   font-size: 29rpx;
   line-height: 1.72;
   margin-bottom: 14rpx;
+  white-space: pre-wrap;
 }
 
 .msg.ai {
@@ -576,7 +674,6 @@ onUnload(() => {
   height: 78rpx;
   border-radius: 18rpx;
   background: #fb7185;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -601,17 +698,33 @@ onUnload(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(14rpx); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

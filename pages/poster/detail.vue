@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page">
     <view class="poster-cover">
       <image :src="detail.image" mode="aspectFill" class="cover-image" />
@@ -8,20 +8,23 @@
     </view>
 
     <view class="content">
-      <view class="title">{{ detail.detailTitle }}</view>
-      <view class="desc">{{ detail.detailContent }}</view>
+      <view class="title">{{ detail.title }}</view>
+      <view class="desc">{{ detail.content }}</view>
     </view>
 
     <view class="actions">
-      <button class="secondary-btn" @click="goCenter">查看中心</button>
-      <button class="primary-btn" @click="showQr = true">预约参观</button>
+      <button class="secondary-btn" @click="goCenter">Center</button>
+      <button class="primary-btn" @click="showQr = true">Book Visit</button>
     </view>
 
     <view v-if="showQr" class="overlay" @click="showQr = false">
       <view class="qr-box" @click.stop>
-        <view class="qr-title">扫码预约顾问</view>
-        <image class="qr" src="https://picsum.photos/seed/qr/360/360" mode="aspectFill" />
-        <button class="primary-btn" @click="showQr = false">我知道了</button>
+        <view class="qr-title">Scan to Contact</view>
+        <image class="qr" :src="qrInfo.qrCodeUrl || 'https://picsum.photos/seed/qr/360/360'" mode="aspectFill" />
+        <view class="qr-tip" v-if="qrInfo.consultantName || qrInfo.tips">
+          {{ qrInfo.consultantName }} {{ qrInfo.tips }}
+        </view>
+        <button class="primary-btn" @click="showQr = false">Close</button>
       </view>
     </view>
   </view>
@@ -30,18 +33,21 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getPosterDetail } from '@/api/modules/center';
+import { getAppointmentQrCode, getBannerDetail } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
-import type { Banner } from '@/types/domain';
+import type { BannerDetail, QrCodeInfo } from '@/types/domain';
 
 const showQr = ref(false);
-const detail = ref<Banner>({
+const detail = ref<BannerDetail>({
   id: '0',
   title: '',
-  buttonText: '',
-  image: 'https://picsum.photos/seed/detail/800/1200',
-  detailTitle: '',
-  detailContent: ''
+  content: '',
+  image: 'https://picsum.photos/seed/detail/800/1200'
+});
+const qrInfo = ref<QrCodeInfo>({
+  qrCodeUrl: '',
+  consultantName: '',
+  tips: ''
 });
 
 function goBack() {
@@ -54,9 +60,17 @@ function goCenter() {
 
 onLoad(async (query) => {
   const id = String(query.id || '1');
-  trackPath(`海报详情:${id}`);
-  const res = await getPosterDetail(id);
-  detail.value = res.data;
+  trackPath(`poster:${id}`);
+  try {
+    const [detailRes, qrRes] = await Promise.all([
+      getBannerDetail(id),
+      getAppointmentQrCode('banner', id)
+    ]);
+    detail.value = detailRes.data;
+    qrInfo.value = qrRes.data;
+  } catch {
+    uni.showToast({ title: 'Load failed', icon: 'none' });
+  }
 });
 </script>
 
@@ -76,7 +90,6 @@ onLoad(async (query) => {
   position: absolute;
   left: 24rpx;
   top: var(--top-safe-offset-compact);
-  color: #fff;
   width: 90rpx;
   height: 74rpx;
   text-align: center;
@@ -97,7 +110,7 @@ onLoad(async (query) => {
 
 .title {
   font-size: 42rpx;
-  letter-spacing: 4rpx;
+  letter-spacing: 2rpx;
   margin-bottom: 24rpx;
 }
 
@@ -146,5 +159,11 @@ onLoad(async (query) => {
   width: 400rpx;
   height: 400rpx;
   margin: 0 auto 24rpx;
+}
+
+.qr-tip {
+  margin-bottom: 20rpx;
+  color: #6b7280;
+  font-size: 24rpx;
 }
 </style>

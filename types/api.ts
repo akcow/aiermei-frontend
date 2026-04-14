@@ -1,8 +1,9 @@
-﻿export interface ApiResponse<T> {
+export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
   requestId?: string;
+  timestamp?: string;
 }
 
 export interface Pagination<T> {
@@ -10,24 +11,47 @@ export interface Pagination<T> {
   total: number;
   page: number;
   pageSize: number;
+  hasMore?: boolean;
 }
 
 export interface WechatLoginReq {
   code: string;
+  encryptedPhoneData?: string;
+  iv?: string;
+  redirectUri?: string;
+}
+
+export interface LoginUserSummary {
+  uid?: string;
+  name?: string;
+  avatar?: string;
+  phone?: string;
+  memberLevel?: string;
 }
 
 export interface WechatLoginResp {
   token: string;
-  refreshToken: string;
-  expiresIn: number;
+  user?: LoginUserSummary;
+  refreshToken?: string;
+  expiresIn?: number;
 }
 
 export interface EvaluationReq {
-  type: string;
-  content: string;
+  orderId?: string;
+  score: number;
+  content?: string;
+  anonymous?: boolean;
 }
 
 export interface ComplaintReq {
-  type: string;
+  contactName?: string;
+  phone?: string;
   content: string;
+  relatedService?: string;
+  complaintType?: 'SERVICE_QUALITY' | 'FACILITY_ENVIRONMENT' | 'CATERING_SUGGESTION' | 'OTHER';
+}
+
+export interface AiChatReq {
+  sessionId?: string;
+  message: string;
 }

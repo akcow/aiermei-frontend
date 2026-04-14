@@ -1,25 +1,25 @@
-﻿<template>
+<template>
   <view class="page sub-page">
     <view class="head">
-        <view class="back" @click="goBack">
-          <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
-        </view>
+      <view class="back" @click="goBack">
+        <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
+      </view>
       <view class="head-title">{{ title }}</view>
     </view>
 
     <view class="body" v-if="type === 'evaluation'">
       <view class="card center">
-        <view class="tip">请给本次服务打分</view>
+        <view class="tip">Rate this service</view>
         <view class="stars">
           <text class="star" :class="{ on: index <= rating }" v-for="index in 5" :key="index" @click="rating = index">*</text>
         </view>
       </view>
       <view class="card">
-        <view class="tip">评价内容</view>
-        <textarea class="textarea" v-model="content" placeholder="请输入评价内容..." />
+        <view class="tip">Comment</view>
+        <textarea class="textarea" v-model="content" placeholder="Leave your feedback..." />
       </view>
-      <button class="submit" :class="{ disabled: rating === 0 }" @click="submitEvaluationAction">提交评价</button>
-      <view class="done" v-if="submitted">提交成功，感谢你的反馈</view>
+      <button class="submit" :class="{ disabled: rating === 0 }" @click="submitEvaluationAction">Submit</button>
+      <view class="done" v-if="submitted">Submitted successfully</view>
     </view>
 
     <view class="body" v-else-if="type === 'hotline'">
@@ -32,39 +32,31 @@
           <image class="call-icon" src="/static/icons/phone.svg" mode="aspectFit" />
         </view>
       </view>
-      <view class="card center">
-        <view class="tip">扫码联系顾问</view>
-        <image class="qr" src="https://picsum.photos/seed/qr2/360/360" mode="aspectFill" />
+      <view class="card center" v-if="serviceQrCodeUrl">
+        <view class="tip">Service QR Code</view>
+        <image class="qr" :src="serviceQrCodeUrl" mode="aspectFill" />
+        <view class="a">{{ serviceQrTips }}</view>
       </view>
     </view>
 
     <view class="body faq-body" v-else-if="type === 'faq'">
-      <!-- 入口卡片 -->
       <view v-if="!faqCategory">
-        <view class="faq-entry" @click="faqCategory = 'pregnancy'">
-          <view class="faq-entry-text">我的孕期</view>
-          <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
-        </view>
-        <view class="faq-entry" @click="faqCategory = 'account'">
-          <view>
-            <view class="faq-entry-text">常见问题</view>
-            <view class="faq-entry-sub">隐私条款及账户问题</view>
-          </view>
+        <view class="faq-entry" v-for="item in faqCategories" :key="item.id" @click="openFaqCategory(item.id)">
+          <view class="faq-entry-text">{{ item.name }}</view>
           <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
       </view>
-      <!-- 问题列表 -->
       <view v-else>
         <view class="faq-back" @click="faqCategory = ''">
           <image class="faq-back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
-          <text>{{ faqCategory === 'pregnancy' ? '我的孕期' : '常见问题' }}</text>
+          <text>{{ currentFaqCategoryName }}</text>
         </view>
-        <view class="faq-item" v-for="(item, idx) in currentFaqQuestions" :key="idx" @click="toggleFaq(idx)">
+        <view class="faq-item" v-for="(item, idx) in currentFaqQuestions" :key="item.id" @click="toggleFaq(idx)">
           <view class="faq-header">
-            <view class="faq-q">{{ item.q }}</view>
+            <view class="faq-q">{{ item.title }}</view>
             <image class="faq-arrow" :class="{ expanded: expandedFaq === idx }" src="/static/icons/arrow-down.svg" mode="aspectFit" />
           </view>
-          <view class="faq-a" v-if="expandedFaq === idx">{{ item.a }}</view>
+          <view class="faq-a" v-if="expandedFaq === idx">{{ item.content }}</view>
         </view>
       </view>
     </view>
@@ -74,20 +66,20 @@
         <image :src="item.images[0]" class="pkg-cover" mode="aspectFill" />
         <view class="pkg-title">{{ item.name }}</view>
         <view class="pkg-desc">{{ item.size }} / {{ item.features.join(' | ') }}</view>
-        <view class="pkg-price">{{ item.price }}</view>
+        <view class="pkg-price">{{ item.price || item.priceLabel || '--' }}</view>
       </view>
     </view>
 
     <view class="body" v-else-if="type === 'coupon'">
       <view class="card coupon" v-for="item in coupons" :key="item.id">
-        <view class="left-bar" :class="{ off: item.status !== '可用' }" />
+        <view class="left-bar" :class="{ off: item.status !== 'AVAILABLE' }" />
         <view>
           <view class="q">{{ item.name }}</view>
-          <view class="a">到期 {{ item.expiry }}</view>
+          <view class="a">Expires {{ item.expiry }}</view>
         </view>
         <view class="coupon-right">
-          <view class="coupon-money">{{ item.value }}</view>
-          <view class="coupon-state" :class="{ off: item.status !== '可用' }">{{ item.status }}</view>
+          <view class="coupon-money">{{ item.valueLabel || item.value || '--' }}</view>
+          <view class="coupon-state" :class="{ off: item.status !== 'AVAILABLE' }">{{ item.status }}</view>
         </view>
       </view>
     </view>
@@ -96,7 +88,7 @@
       <view class="card service" v-for="item in services" :key="item.id">
         <view class="row-between">
           <view class="q">{{ item.name }}</view>
-          <view class="status" :class="{ doneStatus: item.status === '已完成' }">{{ item.status }}</view>
+          <view class="status">{{ item.status }}</view>
         </view>
         <view class="a">{{ item.expert }} / {{ item.time }}</view>
       </view>
@@ -104,21 +96,29 @@
 
     <view class="body" v-else-if="type === 'complaint'">
       <view class="card">
-        <view class="tip">问题类型</view>
+        <view class="tip">Complaint Type</view>
         <view class="type-grid">
-          <view class="type-item" :class="{ active: complaintType === t }" v-for="t in types" :key="t" @click="complaintType = t">{{ t }}</view>
+          <view
+            class="type-item"
+            :class="{ active: complaintType === t.value }"
+            v-for="t in complaintOptions"
+            :key="t.value"
+            @click="complaintType = t.value"
+          >
+            {{ t.label }}
+          </view>
         </view>
       </view>
       <view class="card">
-        <view class="tip">问题描述</view>
-        <textarea class="textarea" v-model="content" placeholder="请输入你的建议或投诉..." />
+        <view class="tip">Description</view>
+        <textarea class="textarea" v-model="content" placeholder="Describe your issue..." />
       </view>
-      <button class="submit" :class="{ disabled: !content.trim() }" @click="submitComplaintAction">提交建议</button>
-      <view class="done" v-if="submitted">提交成功，我们会尽快联系你</view>
+      <button class="submit" :class="{ disabled: !content.trim() }" @click="submitComplaintAction">Submit</button>
+      <view class="done" v-if="submitted">Submitted successfully</view>
     </view>
 
     <view class="body" v-else>
-      <view class="card center">页面开发中...</view>
+      <view class="card center">Page under construction</view>
     </view>
   </view>
 </template>
@@ -126,60 +126,84 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getFaqItems, getMemberCoupons, getPregnancyFaqItems, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
 import { getSuites } from '@/api/modules/center';
+import {
+  getFaqCategories,
+  getFaqItems,
+  getMemberCoupons,
+  getPostpartumServices,
+  getServiceHotlines,
+  submitComplaint,
+  submitEvaluation
+} from '@/api/modules/member';
 import { hotlineList } from '@/mock/data';
 import { trackPath } from '@/store/session';
-import type { Coupon, PostpartumService, PresetQuestion, Suite } from '@/types/domain';
+import type { Coupon, FaqCategory, FaqItem, HotlineInfo, PostpartumService, Suite } from '@/types/domain';
 
 const type = ref('evaluation');
 const rating = ref(0);
 const content = ref('');
 const submitted = ref(false);
-const complaintType = ref('环境问题');
-const types = ['环境问题', '服务态度', '流程建议', '其他'];
 
-const questions = ref<PresetQuestion[]>([]);
-const pregnancyQuestions = ref<PresetQuestion[]>([]);
+const complaintOptions = [
+  { label: 'Service Quality', value: 'SERVICE_QUALITY' as const },
+  { label: 'Facility Environment', value: 'FACILITY_ENVIRONMENT' as const },
+  { label: 'Catering Suggestion', value: 'CATERING_SUGGESTION' as const },
+  { label: 'Other', value: 'OTHER' as const }
+];
+const complaintType = ref<(typeof complaintOptions)[number]['value']>(complaintOptions[0].value);
+
+const faqCategories = ref<FaqCategory[]>([]);
+const faqMap = ref<Record<string, FaqItem[]>>({});
+const faqCategory = ref('');
+const expandedFaq = ref<number | null>(null);
+
 const suites = ref<Suite[]>([]);
 const coupons = ref<Coupon[]>([]);
 const services = ref<PostpartumService[]>([]);
-const hotlineListData = hotlineList;
-const expandedFaq = ref<number | null>(null);
-const faqCategory = ref<string>('');
+const hotlineListData = ref<HotlineInfo[]>(hotlineList);
+const serviceQrCodeUrl = ref('');
+const serviceQrTips = ref('');
 
 const titleMap: Record<string, string> = {
-  evaluation: '服务评价',
-  faq: '常见问题',
-  package: '套餐详情',
-  hotline: '服务热线',
-  coupon: '我的优惠券',
-  postpartum: '产后服务',
-  complaint: '投诉建议'
+  evaluation: 'Service Evaluation',
+  faq: 'FAQ',
+  package: 'Packages',
+  hotline: 'Hotline',
+  coupon: 'Coupons',
+  postpartum: 'Postpartum Services',
+  complaint: 'Complaint'
 };
 
-const title = computed(() => titleMap[type.value] || '详情');
-
-const currentFaqQuestions = computed(() => {
-  if (faqCategory.value === 'pregnancy') {
-    return pregnancyQuestions.value;
-  }
-  return questions.value;
-});
+const title = computed(() => titleMap[type.value] || 'Detail');
+const currentFaqQuestions = computed(() => faqMap.value[faqCategory.value] || []);
+const currentFaqCategoryName = computed(
+  () => faqCategories.value.find((item) => item.id === faqCategory.value)?.name || 'FAQ'
+);
 
 function goBack() {
   uni.navigateBack();
 }
 
 async function submitEvaluationAction() {
-  if (rating.value === 0) return;
-  await submitEvaluation({ type: 'service', content: content.value || `评分${rating.value}` });
+  if (rating.value === 0) {
+    return;
+  }
+  await submitEvaluation({
+    score: rating.value,
+    content: content.value || `score ${rating.value}`
+  });
   submitted.value = true;
 }
 
 async function submitComplaintAction() {
-  if (!content.value.trim()) return;
-  await submitComplaint({ type: complaintType.value, content: content.value });
+  if (!content.value.trim()) {
+    return;
+  }
+  await submitComplaint({
+    complaintType: complaintType.value,
+    content: content.value
+  });
   submitted.value = true;
 }
 
@@ -195,11 +219,23 @@ function toggleFaq(idx: number) {
   expandedFaq.value = expandedFaq.value === idx ? null : idx;
 }
 
+async function openFaqCategory(categoryId: string) {
+  faqCategory.value = categoryId;
+  expandedFaq.value = null;
+  if (faqMap.value[categoryId]) {
+    return;
+  }
+  const res = await getFaqItems(categoryId);
+  faqMap.value = {
+    ...faqMap.value,
+    [categoryId]: res.data
+  };
+}
+
 async function loadByType() {
   if (type.value === 'faq') {
-    const [faqRes, pregnancyRes] = await Promise.all([getFaqItems(), getPregnancyFaqItems()]);
-    questions.value = faqRes.data;
-    pregnancyQuestions.value = pregnancyRes.data;
+    const categoriesRes = await getFaqCategories();
+    faqCategories.value = categoriesRes.data;
   }
   if (type.value === 'package') {
     suites.value = (await getSuites()).data;
@@ -210,12 +246,26 @@ async function loadByType() {
   if (type.value === 'postpartum') {
     services.value = (await getPostpartumServices()).data;
   }
+  if (type.value === 'hotline') {
+    try {
+      const response = await getServiceHotlines();
+      hotlineListData.value = response.data.hotlines || hotlineListData.value;
+      serviceQrCodeUrl.value = response.data.serviceQrCodeUrl || '';
+      serviceQrTips.value = response.data.serviceQrTips || '';
+    } catch {
+      hotlineListData.value = hotlineList;
+    }
+  }
 }
 
 onLoad(async (query) => {
   type.value = String(query.id || 'evaluation');
-  trackPath(`会员子页:${type.value}`);
-  await loadByType();
+  trackPath(`member-sub:${type.value}`);
+  try {
+    await loadByType();
+  } catch {
+    uni.showToast({ title: 'Data load failed', icon: 'none' });
+  }
 });
 </script>
 
@@ -234,7 +284,6 @@ onLoad(async (query) => {
 
 .back {
   min-width: 88rpx;
-  color: #6b7280;
 }
 
 .back-icon {
@@ -245,7 +294,7 @@ onLoad(async (query) => {
 
 .head-title {
   font-size: 34rpx;
-  letter-spacing: 5rpx;
+  letter-spacing: 3rpx;
   color: #111827;
 }
 
@@ -288,7 +337,7 @@ onLoad(async (query) => {
 
 .textarea {
   width: 100%;
-  min-height: 240rpx;
+  min-height: 220rpx;
   font-size: 27rpx;
   line-height: 1.75;
 }
@@ -299,7 +348,6 @@ onLoad(async (query) => {
   background: #111827;
   color: #fff;
   font-size: 28rpx;
-  letter-spacing: 4rpx;
 }
 
 .submit.disabled {
@@ -328,7 +376,6 @@ onLoad(async (query) => {
   width: 74rpx;
   height: 74rpx;
   background: #111827;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,12 +392,6 @@ onLoad(async (query) => {
   height: 360rpx;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .q {
   font-size: 28rpx;
   color: #1f2937;
@@ -361,12 +402,6 @@ onLoad(async (query) => {
   font-size: 24rpx;
   color: #6b7280;
   line-height: 1.6;
-}
-
-.arrow {
-  width: 16rpx;
-  height: 16rpx;
-  opacity: 0.4;
 }
 
 .package {
@@ -452,11 +487,6 @@ onLoad(async (query) => {
   padding: 6rpx 12rpx;
 }
 
-.status.doneStatus {
-  color: #9ca3af;
-  border-color: #e5e7eb;
-}
-
 .type-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -496,7 +526,6 @@ onLoad(async (query) => {
 .faq-q {
   font-size: 30rpx;
   color: #333;
-  font-weight: 500;
 }
 
 .faq-arrow {
@@ -534,13 +563,6 @@ onLoad(async (query) => {
 .faq-entry-text {
   font-size: 32rpx;
   color: #333;
-  font-weight: 500;
-}
-
-.faq-entry-sub {
-  font-size: 26rpx;
-  color: #999;
-  margin-top: 8rpx;
 }
 
 .faq-entry-arrow {

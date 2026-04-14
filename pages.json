@@ -1,4 +1,4 @@
-﻿{
+{
   "pages": [
     {
       "path": "pages/home/index",
@@ -26,6 +26,12 @@
     },
     {
       "path": "pages/content/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/content/article",
       "style": {
         "navigationStyle": "custom"
       }
@@ -64,7 +70,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "爱儿美月子中心",
+    "navigationBarTitleText": "Aiermei Center",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F5F5F0"
   },

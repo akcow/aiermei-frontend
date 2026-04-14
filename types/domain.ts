@@ -1,4 +1,4 @@
-﻿export type ContentCategory = 'pregnancy' | 'postpartum' | 'parenting' | 'nanny';
+export type ContentCategory = string;
 
 export interface UserPath {
   path: string;
@@ -8,9 +8,13 @@ export interface UserPath {
 
 export interface UserProfile {
   uid: string;
-  nickname: string;
+  name?: string;
+  nickname?: string;
+  avatar?: string;
+  phone?: string;
+  memberLevel?: string;
   tags: string[];
-  lastActive: number;
+  lastActive: number | string;
   isLoggedIn: boolean;
   pregnancyInfo?: {
     type: 'pregnancy' | 'postpartum';
@@ -28,50 +32,123 @@ export interface Banner {
   detailContent: string;
 }
 
+export interface BannerDetail {
+  id: string;
+  title: string;
+  content: string;
+  image: string;
+}
+
+export interface QrCodeInfo {
+  qrCodeUrl: string;
+  consultantName: string;
+  tips: string;
+}
+
 export interface ContentItem {
   id: string;
   title: string;
   cover: string;
-  type: 'image' | 'video';
+  mediaUrl?: string;
+  type: 'image' | 'video' | 'article' | string;
   category: ContentCategory;
   author: string;
   likes: number;
 }
 
-export interface ServiceCategory {
+export interface ContentCategoryItem {
+  id: string;
+  label: string;
+}
+
+export interface FortuneCard {
+  date: string;
+  suitable: string;
+  avoid: string;
+  greeting: string;
+}
+
+export interface Facility {
+  id?: string;
+  title: string;
+  desc: string;
+  image: string;
+}
+
+export interface CenterHome {
+  heroImage?: string;
+  brandTitle?: string;
+  brandSubtitle?: string;
+  facilities: Facility[];
+}
+
+export interface CenterSection {
   id: string;
   title: string;
   desc: string;
+  coverImage: string;
+}
+
+export interface CenterSectionDetail {
+  id: string;
+  title: string;
+  detailImage: string;
 }
 
 export interface Suite {
   id: string;
   name: string;
-  price: string;
+  price?: string;
+  priceLabel?: string;
   size: string;
   features: string[];
   images: string[];
 }
 
 export interface PresetQuestion {
-  q: string;
-  a: string;
+  id?: string;
+  question: string;
+  answer: string;
+}
+
+export interface FaqCategory {
+  id: string;
+  name: string;
+}
+
+export interface FaqItem {
+  id: string;
+  categoryId: string;
+  title: string;
+  content: string;
 }
 
 export interface Coupon {
-  id: number;
+  id: string | number;
   name: string;
-  value: string;
+  value?: number;
+  valueLabel?: string;
   expiry: string;
-  status: '可用' | '已过期';
+  status: string;
 }
 
 export interface PostpartumService {
-  id: number;
+  id: number | string;
   name: string;
   time: string;
-  status: '待服务' | '已完成';
+  status: string;
   expert: string;
+}
+
+export interface HotlineInfo {
+  label: string;
+  number: string;
+}
+
+export interface ServiceHotlines {
+  hotlines: HotlineInfo[];
+  serviceQrCodeUrl?: string;
+  serviceQrTips?: string;
 }
 
 export interface AnalysisResult {

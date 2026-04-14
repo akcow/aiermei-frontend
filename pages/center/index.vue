@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <view class="page center-page">
     <view class="hero">
-      <image class="hero-image" src="https://picsum.photos/seed/storefront/1080/1920" mode="aspectFill" />
+      <image class="hero-image" :src="heroImage" mode="aspectFill" />
       <view class="hero-mask" />
       <view class="hero-inner fade-up">
-        <view class="hero-brand">AI ER MEI</view>
-        <view class="hero-sub">RESIDENCES</view>
+        <view class="hero-brand">{{ brandTitle }}</view>
+        <view class="hero-sub">{{ brandSubtitle }}</view>
       </view>
       <view class="scroll-hint bounce">
         <image class="hint-icon" src="/static/icons/arrow-down.svg" mode="aspectFit" />
@@ -15,13 +15,8 @@
     <view class="floating-sections">
       <scroll-view scroll-x class="section-scroll" enhanced show-scrollbar="false">
         <view class="section-row">
-          <view
-            class="section-card-item reveal"
-            v-for="item in sections"
-            :key="item.id"
-            @click="openSection(item.id)"
-          >
-            <image :src="item.image" mode="aspectFill" class="section-image" />
+          <view class="section-card-item reveal" v-for="item in sections" :key="item.id" @click="openSection(item.id)">
+            <image :src="item.coverImage" mode="aspectFill" class="section-image" />
             <view class="section-overlay" />
             <view class="section-meta">
               <view class="section-title-text">{{ item.title }}</view>
@@ -30,19 +25,16 @@
           </view>
         </view>
       </scroll-view>
-      <view class="dot-row">
-        <text class="dot" v-for="(_, index) in sections" :key="index">.</text>
-      </view>
     </view>
 
     <view class="content-wrap">
       <view class="split-title">
         <view class="line" />
-        <text>核心能力</text>
+        <text>Core Services</text>
         <view class="line" />
       </view>
 
-      <view class="facility-block reveal" v-for="item in facilities" :key="item.title">
+      <view class="facility-block reveal" v-for="item in facilities" :key="item.id || item.title">
         <image :src="item.image" mode="aspectFill" class="facility-image" />
         <view class="facility-title">{{ item.title }}</view>
         <view class="facility-desc">{{ item.desc }}</view>
@@ -50,7 +42,7 @@
 
       <view class="split-title suite-head">
         <view class="line" />
-        <text>套房套餐</text>
+        <text>Suites</text>
         <view class="line" />
       </view>
 
@@ -59,7 +51,7 @@
           <image :src="item.images[0]" class="suite-thumb" mode="aspectFill" />
           <view class="suite-info">
             <view class="suite-name">{{ item.name }}</view>
-            <view class="suite-price">{{ item.price }}</view>
+            <view class="suite-price">{{ item.price || item.priceLabel || '--' }}</view>
             <view class="suite-feat">{{ item.features.slice(0, 2).join(' / ') }}</view>
           </view>
           <image class="arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
@@ -75,28 +67,44 @@
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import BottomNav from '@/components/BottomNav.vue';
-import { centerFacilities, centerSections } from '@/mock/data';
-import { getSuites } from '@/api/modules/center';
+import { getCenterHome, getCenterSections, getSuites } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
-import type { Suite } from '@/types/domain';
+import type { CenterSection, Facility, Suite } from '@/types/domain';
 
-const sections = centerSections;
-const facilities = centerFacilities;
+const heroImage = ref('https://picsum.photos/seed/storefront/1080/1920');
+const brandTitle = ref('AI ER MEI');
+const brandSubtitle = ref('RESIDENCES');
+const sections = ref<CenterSection[]>([]);
+const facilities = ref<Facility[]>([]);
 const suites = ref<Suite[]>([]);
 
 function openSection(id: string) {
-  trackPath(`中心模块:${id}`);
+  trackPath(`center-section:${id}`);
   uni.navigateTo({ url: `/pages/center/detail?id=${id}` });
 }
 
 function openSuite(id: string) {
-  trackPath(`套房:${id}`);
+  trackPath(`suite:${id}`);
   uni.navigateTo({ url: `/pages/suite-details/index?id=${id}` });
 }
 
 onLoad(async () => {
-  trackPath('中心首页');
-  suites.value = (await getSuites()).data;
+  trackPath('center-home');
+  try {
+    const [homeRes, sectionRes, suiteRes] = await Promise.all([
+      getCenterHome(),
+      getCenterSections(),
+      getSuites()
+    ]);
+    heroImage.value = homeRes.data.heroImage || heroImage.value;
+    brandTitle.value = homeRes.data.brandTitle || brandTitle.value;
+    brandSubtitle.value = homeRes.data.brandSubtitle || brandSubtitle.value;
+    facilities.value = homeRes.data.facilities || [];
+    sections.value = sectionRes.data || [];
+    suites.value = suiteRes.data || [];
+  } catch {
+    uni.showToast({ title: 'Center load failed', icon: 'none' });
+  }
 });
 </script>
 
@@ -150,7 +158,6 @@ onLoad(async () => {
   left: 50%;
   bottom: 42rpx;
   transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .hint-icon {
@@ -219,17 +226,6 @@ onLoad(async () => {
   font-size: 24rpx;
   line-height: 1.7;
   opacity: 0.78;
-}
-
-.dot-row {
-  display: flex;
-  justify-content: center;
-  margin-top: 12rpx;
-}
-
-.dot {
-  color: rgba(17, 24, 39, 0.35);
-  margin: 0 6rpx;
 }
 
 .content-wrap {
@@ -359,7 +355,12 @@ onLoad(async () => {
 }
 
 @keyframes bounceY {
-  0%, 100% { transform: translate(-50%, 0); }
-  50% { transform: translate(-50%, 10rpx); }
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 10rpx);
+  }
 }
 </style>
