@@ -67,7 +67,20 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
 
     // 会员中心
     case 'GET /api/v1/users/me':
-      return createMockResponse(defaultProfile);
+      return createMockResponse({
+        uid: 'user_123',
+        name: '111房间号宝妈',
+        avatar: 'https://picsum.photos/seed/avatar/200/200',
+        phone: '138****0000',
+        memberLevel: 'gold',
+        isLoggedIn: true,
+        pregnancyInfo: {
+          type: 'postpartum',
+          date: '2026-08-15'
+        },
+        tags: ['关注产后康复'],
+        lastActive: new Date().toISOString()
+      });
 
     case 'GET /api/v1/member/coupons':
       return createMockResponse(coupons);
@@ -117,6 +130,21 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
 
     default:
       // 动态路由处理
+      // AI 历史消息
+      if (urlWithoutQuery.startsWith('/api/v1/ai/sessions/') && urlWithoutQuery.endsWith('/messages')) {
+        return createMockResponse({
+          sessionId: urlWithoutQuery.split('/')[5],
+          list: [
+            { seqNo: 1, role: 'USER', content: '剖宫产后多久能做康复？', createdAt: '2026-04-15T10:00:00+08:00' },
+            { seqNo: 2, role: 'ASSISTANT', content: '剖宫产后一般建议**术后6-8周**开始进行轻度康复训练，具体时间需根据您的身体恢复情况，建议咨询您的主治医生获得个性化建议。', createdAt: '2026-04-15T10:00:05+08:00' },
+            { seqNo: 3, role: 'USER', content: '新生儿作息怎么建立？', createdAt: '2026-04-15T11:00:00+08:00' },
+            { seqNo: 4, role: 'ASSISTANT', content: '建立新生儿作息建议：\n\n1. **区分昼夜**：白天保持明亮，晚上保持昏暗\n2. **规律喂养**：每2-3小时喂养一次\n3. **睡前仪式**：洗澡、按摩、轻声哼唱\n4. **观察睡意信号**：打哈欠、揉眼睛时及时哄睡', createdAt: '2026-04-15T11:00:08+08:00' }
+          ],
+          nextCursor: undefined,
+          hasMore: false
+        });
+      }
+
       if (urlWithoutQuery.startsWith('/api/v1/banners/')) {
         const id = urlWithoutQuery.split('/').pop();
         const banner = banners.find((item) => item.id === id) || banners[0];

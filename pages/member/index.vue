@@ -5,10 +5,14 @@
         <view class="brand">AI ER MEI</view>
       </view>
       <view class="profile-row">
-        <view class="avatar">AVATAR</view>
+        <view class="avatar">
+          <image v-if="profile.avatar" :src="profile.avatar" mode="aspectFill" class="avatar-img" />
+          <text v-else>AVATAR</text>
+        </view>
         <view>
-          <view class="badge">GOLD MEMBER</view>
-          <view class="name">111号用户</view>
+          <view class="badge" v-if="profile.memberLevel">{{ getMemberLevelLabel(profile.memberLevel) }}</view>
+          <view class="badge" v-else>访客</view>
+          <view class="name">{{ profile.name || '未登录' }}</view>
         </view>
       </view>
     </view>
@@ -71,6 +75,13 @@
           <image class="menu-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
         </view>
       </view>
+
+      <view class="logout-section" v-if="profile.isLoggedIn || getToken()">
+        <view class="logout-btn" @click="handleLogout">
+          <image class="logout-icon" src="/static/icons/close.svg" mode="aspectFit" />
+          <text class="logout-text">退出登录</text>
+        </view>
+      </view>
     </view>
 
     <AuthModal :visible="showAuth" @close="showAuth = false" @success="handleAuthSuccess" />
@@ -84,12 +95,23 @@ import { onLoad, onShow } from '@dcloudio/uni-app';
 import AuthModal from '@/components/AuthModal.vue';
 import BottomNav from '@/components/BottomNav.vue';
 import { memberArticles } from '@/mock/data';
-import { getLocalProfile, setLoginState, trackPath } from '@/store/session';
+import { getLocalProfile, setLoginState, setLocalProfile, trackPath, getToken, clearSession } from '@/store/session';
+import { getCurrentUser } from '@/api/modules/member';
 
 const profile = ref(getLocalProfile());
 const showAuth = ref(false);
 const pendingId = ref('');
 const protectedIds = ['package', 'postpartum', 'coupon'];
+
+// 会员等级标签映射
+function getMemberLevelLabel(level?: string): string {
+  const labels: Record<string, string> = {
+    'gold': 'GOLD MEMBER',
+    'silver': 'SILVER MEMBER',
+    'platinum': 'PLATINUM MEMBER'
+  };
+  return level ? labels[level] || level.toUpperCase() + ' MEMBER' : 'GUEST';
+}
 
 const topServices = [
   { id: 'package', label: '我的套餐', iconPath: '/static/icons/package.svg' },
@@ -107,7 +129,8 @@ const articles = memberArticles;
 const articleIndex = ref(0);
 
 function openSub(id: string) {
-  if (protectedIds.includes(id) && !profile.value.isLoggedIn) {
+  // 检查登录状态
+  if (protectedIds.includes(id) && !profile.value.isLoggedIn && !getToken()) {
     pendingId.value = id;
     showAuth.value = true;
     return;
@@ -122,14 +145,24 @@ function openMagazine(id: string) {
 }
 
 function handleAuthSuccess() {
-  setLoginState(true);
   profile.value = getLocalProfile();
   showAuth.value = false;
-  if (pendingId.value) {
-    const target = pendingId.value;
-    pendingId.value = '';
-    openSub(target);
-  }
+}
+
+function handleLogout() {
+  uni.showModal({
+    title: '提示',
+    content: '确定要退出登录吗？',
+    success: (res) => {
+      if (res.confirm) {
+        clearSession();
+        profile.value = getLocalProfile();
+        uni.showToast({ title: '已退出登录', icon: 'success' });
+        // 退出后弹出登录弹窗
+        showAuth.value = true;
+      }
+    }
+  });
 }
 
 function onFeatureChange(event: any) {
@@ -140,8 +173,36 @@ onLoad(() => {
   trackPath('会员中心');
 });
 
-onShow(() => {
+onShow(async () => {
   profile.value = getLocalProfile();
+  const token = getToken();
+
+  // 检查登录状态：profile.isLoggedIn 或 token 存在
+  if (!profile.value.isLoggedIn && !token) {
+    // 未登录，弹出登录弹窗
+    showAuth.value = true;
+    return;
+  }
+
+  // 已登录，尝试从后端获取最新用户信息
+  try {
+    const res = await getCurrentUser();
+    if (res.code === 0 && res.data) {
+      // 更新本地用户资料
+      const updatedProfile = {
+        ...profile.value,
+        ...res.data,
+        isLoggedIn: true,
+        lastActive: res.data.lastActive || Date.now()
+      };
+      setLocalProfile(updatedProfile);
+      profile.value = updatedProfile;
+    }
+  } catch (e) {
+    // 4003 错误已在 httpRequest 中统一处理（清除登录态）
+    // 其他错误保持本地缓存作为兜底
+    console.error('Failed to fetch user profile:', e);
+  }
 });
 </script>
 
@@ -177,6 +238,12 @@ onShow(() => {
   justify-content: center;
   color: #9ca3af;
   font-size: 25rpx;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
 }
 
 .badge {
@@ -389,6 +456,32 @@ onShow(() => {
   width: 20rpx;
   height: 20rpx;
   opacity: 0.45;
+}
+
+.logout-section {
+  margin-top: 40rpx;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  min-height: 102rpx;
+  padding: 0 22rpx;
+  background: #fff;
+  border: 1rpx solid rgba(17, 24, 39, 0.08);
+}
+
+.logout-icon {
+  width: 32rpx;
+  height: 32rpx;
+  filter: brightness(0) saturate(100%) invert(31%) sepia(94%) saturate(2476%) hue-rotate(342deg) brightness(88%) contrast(97%);
+}
+
+.logout-text {
+  font-size: 30rpx;
+  color: #ef4444;
 }
 
 .fade-in {

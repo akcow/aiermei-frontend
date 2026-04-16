@@ -5,5 +5,8 @@
   "private": true,
   "devDependencies": {
     "@dcloudio/types": "^3.4.30"
+  },
+  "dependencies": {
+    "marked": "^18.0.0"
   }
 }

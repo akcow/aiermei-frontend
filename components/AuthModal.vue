@@ -4,18 +4,52 @@
       <view class="lock">🔒</view>
       <view class="title">登录后查看完整服务</view>
       <view class="desc">当前入口需要登录授权，授权后将自动回到目标页面。</view>
-      <button class="primary" @click="$emit('success')">微信一键登录</button>
+      <button class="primary" :disabled="loading" @click="handleLogin">
+        {{ loading ? '登录中...' : '微信一键登录' }}
+      </button>
       <button class="ghost" @click="$emit('close')">取消</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-defineProps<{ visible: boolean }>();
-defineEmits<{
+import { ref } from 'vue';
+import { wechatLogin } from '@/api/modules/auth';
+import { saveToken, setLoginState, getLocalProfile, setLocalProfile } from '@/store/session';
+
+const props = defineProps<{ visible: boolean }>();
+const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'success'): void;
 }>();
+
+const loading = ref(false);
+
+async function handleLogin() {
+  loading.value = true;
+  try {
+    // Mock 模式下直接调用登录 API
+    const res = await wechatLogin({ code: 'mock_code' });
+    if (res.code === 0 && res.data) {
+      // 保存 token
+      saveToken(res.data.token);
+      // 更新登录状态
+      setLoginState(true, res.data.token);
+      // 更新用户信息
+      const profile = getLocalProfile();
+      profile.isLoggedIn = true;
+      profile.lastActive = Date.now();
+      setLocalProfile(profile);
+      // 通知父组件登录成功
+      emit('success');
+    }
+  } catch (e) {
+    console.error('Login failed:', e);
+    uni.showToast({ title: '登录失败，请重试', icon: 'none' });
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <style scoped>

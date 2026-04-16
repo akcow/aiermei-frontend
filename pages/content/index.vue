@@ -85,13 +85,31 @@
 
     <view class="ai-drawer" :class="{ open: isAIChatOpen }">
       <view class="ai-header">
-        <view class="ai-title">AI 专家问答</view>
-        <view class="modal-close" @click="closeAIChat">
-          <image class="close-icon" src="/static/icons/close.svg" mode="aspectFit" />
+        <view class="ai-back" @click="closeAIChat">
+          <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
+          <text>返回</text>
         </view>
+        <view class="ai-title">AI 专家问答</view>
+        <view style="width: 100rpx;"></view>
       </view>
-      <scroll-view scroll-y class="ai-messages" :scroll-top="scrollTop">
-        <view class="msg" :class="m.role" v-for="(m, i) in messages" :key="i">{{ m.text }}</view>
+      <scroll-view
+        scroll-y
+        class="ai-messages"
+        :scroll-top="scrollTop"
+        @scrolltoupper="loadMoreHistory"
+      >
+        <view v-if="isLoadingHistory" class="loading-history">加载历史消息...</view>
+        <view class="msg-wrap" :class="m.role" v-for="(m, i) in messages" :key="i">
+          <view class="msg" :class="m.role">
+            <rich-text v-if="m.role === 'ai'" :nodes="renderMarkdown(m.text)"></rich-text>
+            <text v-else>{{ m.text }}</text>
+            <view v-if="m.isLoading" class="loading-dots">
+              <view class="dot"></view>
+              <view class="dot"></view>
+              <view class="dot"></view>
+            </view>
+          </view>
+        </view>
       </scroll-view>
       <view class="ai-preset-row">
         <text class="preset" v-for="(p, i) in presets" :key="i" @click="input = p">{{ p }}</text>
@@ -114,9 +132,18 @@ import { onLoad, onUnload } from '@dcloudio/uni-app';
 import BottomNav from '@/components/BottomNav.vue';
 import { getTodayFortune, getPresetQuestions, getArticles } from '@/api/modules/content';
 import { createSSEConnection, type SSEEvent } from '@/api/http';
-import { getLocalProfile } from '@/store/session';
+import { USE_MOCK } from '@/api/config';
+import { getLocalProfile, getAiSessionId, setAiSessionId, clearAiSessionId, getToken, setLocalProfile } from '@/store/session';
 import { trackPath } from '@/store/session';
+import { getAiSessionMessages } from '@/api/modules/member';
 import type { ContentItem, FortuneCard, PresetQuestion } from '@/types/domain';
+import { marked } from 'marked';
+
+// 配置 marked 选项
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
 
 const activeTab = ref('pregnancy');
 const tabs = [
@@ -135,13 +162,23 @@ const isAIChatOpen = ref(false);
 const typedGreeting = ref('');
 let typingTimer: ReturnType<typeof setInterval> | null = null;
 
-const messages = ref<{ role: string; text: string }[]>([]);
+interface Message {
+  role: 'user' | 'ai';
+  text: string;
+  isLoading?: boolean;
+  seqNo?: number;
+}
+
+const messages = ref<Message[]>([]);
 const input = ref('');
 const scrollTop = ref(0);
 const presets = ['剖宫产后多久能做康复？', '新生儿作息怎么建立？', '怎么选月子套餐？'];
 
 let sseConnection: UniApp.RequestTask | null = null;
 let currentSessionId: string | null = null;
+let nextCursor: string | undefined = undefined;
+let hasMoreHistory = false;
+let isLoadingHistory = ref(false);
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '';
@@ -181,16 +218,91 @@ function openArticle(articleId: string) {
 
 function openAIChat() {
   const profile = getLocalProfile();
-  if (!profile.isLoggedIn) {
+  const token = getToken();
+
+  // 检查登录状态：profile.isLoggedIn 或 token 存在
+  if (!profile.isLoggedIn && !token) {
     uni.showToast({ title: '请先登录', icon: 'none' });
     return;
   }
+
+  // 如果 token 存在但 profile.isLoggedIn 为 false，修正状态
+  if (token && !profile.isLoggedIn) {
+    profile.isLoggedIn = true;
+    setLocalProfile(profile);
+  }
+
   isAIChatOpen.value = true;
-  if (messages.value.length === 0) {
+
+  // 尝试恢复会话
+  let savedSessionId = getAiSessionId();
+
+  // Mock 模式下使用模拟的 sessionId 来测试历史消息
+  if (USE_MOCK && !savedSessionId) {
+    savedSessionId = 'chat_mock_test_001';
+    setAiSessionId(savedSessionId);
+  }
+
+  if (savedSessionId) {
+    currentSessionId = savedSessionId;
+    loadHistoryMessages();
+  } else {
+    // 新会话，显示欢迎消息
     messages.value = [
       { role: 'ai', text: '你好，我是你的产后照护助手。' },
       { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
     ];
+  }
+}
+
+async function loadHistoryMessages(cursor?: string) {
+  if (!currentSessionId || isLoadingHistory.value) return;
+
+  isLoadingHistory.value = true;
+  try {
+    const res = await getAiSessionMessages(currentSessionId, cursor, 20);
+    if (res.code === 0 && res.data) {
+      const historyMessages: Message[] = res.data.list.map(msg => ({
+        role: msg.role === 'USER' ? 'user' : 'ai',
+        text: msg.content,
+        seqNo: msg.seqNo
+      })).reverse(); // 后端返回的是倒序，需要反转
+
+      if (cursor) {
+        // 加载更多历史，插入到前面
+        messages.value = [...historyMessages, ...messages.value];
+      } else {
+        // 首次加载历史
+        messages.value = historyMessages;
+        // 如果没有历史消息，显示欢迎语
+        if (messages.value.length === 0) {
+          messages.value = [
+            { role: 'ai', text: '你好，我是你的产后照护助手。' },
+            { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
+          ];
+        }
+      }
+
+      nextCursor = res.data.nextCursor;
+      hasMoreHistory = res.data.hasMore;
+    }
+  } catch (e) {
+    console.error('Failed to load history messages:', e);
+    // 加载失败时显示欢迎语
+    if (messages.value.length === 0) {
+      messages.value = [
+        { role: 'ai', text: '你好，我是你的产后照护助手。' },
+        { role: 'ai', text: '你可以问我恢复、喂养、情绪或套餐问题。' }
+      ];
+    }
+  } finally {
+    isLoadingHistory.value = false;
+  }
+}
+
+function loadMoreHistory() {
+  if (hasMoreHistory && nextCursor && !isLoadingHistory.value) {
+    loadHistoryMessages(nextCursor);
   }
 }
 
@@ -230,11 +342,13 @@ async function send() {
     return;
   }
 
+  // 添加用户消息
   messages.value.push({ role: 'user', text });
   input.value = '';
 
+  // 添加 AI 占位气泡 + 等待动画
   const aiMessageIndex = messages.value.length;
-  messages.value.push({ role: 'ai', text: '' });
+  messages.value.push({ role: 'ai', text: '', isLoading: true });
 
   try {
     const requestData: { sessionId?: string; message: string } = { message: text };
@@ -245,11 +359,11 @@ async function send() {
     sseConnection = createSSEConnection({
       url: '/api/v1/ai/chat',
       data: requestData,
-      header: { 'X-Uid': profile.uid },
       onEvent: (event: SSEEvent) => {
         handleSSEEvent(event, aiMessageIndex);
       },
       onError: (error) => {
+        messages.value[aiMessageIndex].isLoading = false;
         messages.value[aiMessageIndex].text = '抱歉，连接出现问题，请稍后重试。';
       },
       onComplete: () => {
@@ -257,6 +371,7 @@ async function send() {
       }
     });
   } catch (e) {
+    messages.value[aiMessageIndex].isLoading = false;
     messages.value[aiMessageIndex].text = '抱歉，发送失败，请稍后重试。';
   }
 }
@@ -265,8 +380,14 @@ function handleSSEEvent(event: SSEEvent, messageIndex: number) {
   switch (event.event) {
     case 'start':
       currentSessionId = event.data.sessionId;
+      // 保存 sessionId 到本地
+      if (currentSessionId) {
+        setAiSessionId(currentSessionId);
+      }
       break;
     case 'delta':
+      // 关闭等待动画
+      messages.value[messageIndex].isLoading = false;
       messages.value[messageIndex].text += event.data.content;
       scrollToBottom();
       break;
@@ -278,6 +399,7 @@ function handleSSEEvent(event: SSEEvent, messageIndex: number) {
       sseConnection = null;
       break;
     case 'error':
+      messages.value[messageIndex].isLoading = false;
       messages.value[messageIndex].text = `错误: ${event.data.message}`;
       sseConnection?.abort();
       sseConnection = null;
@@ -291,16 +413,25 @@ function scrollToBottom() {
   });
 }
 
+function renderMarkdown(text: string): string {
+  if (!text) return '';
+  try {
+    return marked.parse(text) as string;
+  } catch {
+    return text;
+  }
+}
+
 onLoad(async () => {
   trackPath('内容中心');
-  
+
   // 并行加载所有数据
   const [fortuneRes, qRes, articlesRes] = await Promise.all([
     getTodayFortune().catch(() => ({ data: null, code: 0, message: '' })),
     getPresetQuestions(2).catch(() => ({ data: [], code: 0, message: '' })),
     getArticles(activeTab.value, 1, 10).catch(() => ({ data: { list: [], total: 0, page: 1, pageSize: 10 }, code: 0, message: '' }))
   ]);
-  
+
   fortune.value = fortuneRes.data;
   questions.value = qRes.data;
   articles.value = articlesRes.data.list;
@@ -630,11 +761,25 @@ onUnload(() => {
 }
 
 .ai-header {
-  padding: var(--top-safe-offset-compact) 24rpx 14rpx;
+  padding: 100rpx 24rpx 14rpx;
   border-bottom: 1rpx solid #fecdd3;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.ai-back {
+  width: 100rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #fb7185;
+  font-size: 28rpx;
+}
+
+.back-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .ai-title {
@@ -645,27 +790,87 @@ onUnload(() => {
 .ai-messages {
   flex: 1;
   padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.loading-history {
+  text-align: center;
+  padding: 20rpx;
+  color: #9ca3af;
+  font-size: 26rpx;
+}
+
+.msg-wrap {
+  margin-bottom: 14rpx;
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.msg-wrap.ai {
+  justify-content: flex-start;
+}
+
+.msg-wrap.user {
+  justify-content: flex-end;
 }
 
 .msg {
-  max-width: 86%;
   padding: 18rpx 20rpx;
   border-radius: 22rpx;
   font-size: 29rpx;
   line-height: 1.72;
-  margin-bottom: 14rpx;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .msg.ai {
+  max-width: 70%;
   background: #fff;
   border: 1rpx solid #ffe4e6;
   color: #4b5563;
+  text-align: left;
 }
 
 .msg.user {
-  margin-left: auto;
+  max-width: 70%;
   background: #fb7185;
   color: #fff;
+  text-align: center;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8rpx;
+  margin-top: 10rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #fb7185;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .ai-preset-row {

@@ -1,5 +1,5 @@
 import { httpRequest, createSSEConnection, type SSEEvent } from '@/api/http';
-import type { EvaluationReq, ComplaintReq, AiChatReq, AiChatStartEvent, AiChatDeltaEvent, AiChatSuggestionEvent, AiChatDoneEvent, AiChatErrorEvent } from '@/types/api';
+import type { EvaluationReq, ComplaintReq, AiChatReq, AiChatStartEvent, AiChatDeltaEvent, AiChatSuggestionEvent, AiChatDoneEvent, AiChatErrorEvent, AiSessionMessagesResp } from '@/types/api';
 import type { Coupon, PostpartumService, FaqCategory, FaqItem, ServiceHotlines, Suite, MagazineDetail } from '@/types/domain';
 
 export function getCurrentUser() {
@@ -121,5 +121,16 @@ export function aiChat(payload: AiChatReq, callbacks: AiChatCallbacks): UniApp.R
     },
     onError: callbacks.onConnectionError,
     onComplete: callbacks.onComplete
+  });
+}
+
+export function getAiSessionMessages(sessionId: string, cursor?: string, limit: number = 20) {
+  const queryParts: string[] = [];
+  if (cursor) queryParts.push(`cursor=${encodeURIComponent(cursor)}`);
+  queryParts.push(`limit=${limit}`);
+
+  const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+  return httpRequest<AiSessionMessagesResp>({
+    url: `/api/v1/ai/sessions/${sessionId}/messages${query}`
   });
 }

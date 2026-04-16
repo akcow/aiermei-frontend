@@ -66,3 +66,17 @@ export interface AiChatErrorEvent {
   code: number;
   message: string;
 }
+
+export interface AiMessage {
+  seqNo: number;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  createdAt: string;
+}
+
+export interface AiSessionMessagesResp {
+  sessionId: string;
+  list: AiMessage[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
