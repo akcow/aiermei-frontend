@@ -185,6 +185,10 @@ export interface MagazineDetail {
 
 export interface DashboardOverview {
   activeCustomers: number;
+  todayVisits: number;
+  orderCount: number;
+  revenue: number;
+  revenueLabel: string;
   avgStayMinutes: number;
   leadConversionRate: number;
   hotContentTitle: string;

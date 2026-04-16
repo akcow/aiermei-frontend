@@ -95,7 +95,7 @@
       </view>
     </view>
 
-    <view class="body" v-else-if="type === 'complaint'">
+    <view class="body complaint-body" v-else-if="type === 'complaint'">
       <view class="card">
         <view class="tip">问题类型</view>
         <view class="type-grid">
@@ -296,7 +296,7 @@ onLoad(async (query) => {
 }
 
 .body {
-  padding: 10rpx 24rpx 60rpx;
+  padding: 0 24rpx 60rpx;
 }
 
 .card {
@@ -344,7 +344,7 @@ onLoad(async (query) => {
   min-height: 94rpx;
   background: #111827;
   color: #fff;
-  font-size: 28rpx;
+  font-size: 30rpx;
   letter-spacing: 4rpx;
 }
 
@@ -356,7 +356,7 @@ onLoad(async (query) => {
   margin-top: 16rpx;
   text-align: center;
   color: #6b7280;
-  font-size: 24rpx;
+  font-size: 28rpx;
 }
 
 .hotline {
@@ -506,16 +506,16 @@ onLoad(async (query) => {
 .type-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10rpx;
+  gap: 16rpx;
 }
 
 .type-item {
-  min-height: 74rpx;
+  min-height: 88rpx;
   border: 1rpx solid rgba(17, 24, 39, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #6b7280;
 }
 
@@ -523,6 +523,26 @@ onLoad(async (query) => {
   background: #111827;
   color: #fff;
   border-color: #111827;
+}
+
+/* 投诉建议页面样式 */
+.body.complaint-body {
+  padding-top: 0;
+  margin-top: 20rpx;
+}
+
+.complaint-body .card {
+  padding: 28rpx;
+}
+
+.complaint-body .tip {
+  font-size: 26rpx;
+  margin-bottom: 16rpx;
+}
+
+.complaint-body .textarea {
+  min-height: 280rpx;
+  font-size: 30rpx;
 }
 
 .faq-item {

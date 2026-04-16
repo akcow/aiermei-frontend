@@ -1,0 +1,223 @@
+<template>
+  <div class="banners-page">
+    <div class="page-header">
+      <h1 class="page-title">海报管理</h1>
+      <el-button type="primary" @click="showEditor()">
+        <el-icon><Plus /></el-icon>
+        新建海报
+      </el-button>
+    </div>
+    
+    <!-- 海报列表 -->
+    <div class="banner-grid">
+      <div v-for="banner in banners" :key="banner.id" class="banner-card card">
+        <div class="banner-cover">
+          <el-image :src="banner.image" fit="cover" />
+          <div class="banner-status">
+            <el-tag :type="banner.status === 'active' ? 'success' : 'info'" size="small">
+              {{ banner.status === 'active' ? '已上线' : '已下线' }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="banner-content">
+          <div class="banner-title">{{ banner.title }}</div>
+          <div class="banner-btn-text">{{ banner.buttonText }}</div>
+          <div class="banner-actions">
+            <el-button type="primary" link @click="showEditor(banner)">编辑</el-button>
+            <el-button
+              :type="banner.status === 'active' ? 'warning' : 'success'"
+              link
+              @click="toggleStatus(banner)"
+            >
+              {{ banner.status === 'active' ? '下线' : '上线' }}
+            </el-button>
+            <el-button type="danger" link @click="deleteBannerHandle(banner)">删除</el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 编辑器弹窗 -->
+    <el-dialog
+      v-model="editorVisible"
+      :title="editingBanner ? '编辑海报' : '新建海报'"
+      width="600px"
+      destroy-on-close
+    >
+      <el-form :model="bannerForm" label-width="80px">
+        <el-form-item label="标题" required>
+          <el-input v-model="bannerForm.title" placeholder="海报标题" />
+        </el-form-item>
+        
+        <el-form-item label="按钮文案">
+          <el-input v-model="bannerForm.buttonText" placeholder="按钮文案" />
+        </el-form-item>
+        
+        <el-form-item label="封面图" required>
+          <ImageUpload v-model="bannerForm.image" />
+        </el-form-item>
+        
+        <el-form-item label="详情标题">
+          <el-input v-model="bannerForm.detailTitle" placeholder="详情页标题" />
+        </el-form-item>
+        
+        <el-form-item label="详情内容">
+          <el-input
+            v-model="bannerForm.detailContent"
+            type="textarea"
+            :rows="4"
+            placeholder="详情页内容"
+          />
+        </el-form-item>
+        
+        <el-form-item label="排序">
+          <el-input-number v-model="bannerForm.sort" :min="1" :max="100" />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="editorVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveBanner">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { mockBanners } from '@/mock/data'
+import ImageUpload from '@/components/ImageUpload.vue'
+import type { Banner } from '@/types'
+
+const banners = ref<Banner[]>([])
+const editorVisible = ref(false)
+const editingBanner = ref<Banner | null>(null)
+
+const bannerForm = reactive({
+  title: '',
+  buttonText: '',
+  image: '',
+  detailTitle: '',
+  detailContent: '',
+  sort: 1
+})
+
+function showEditor(banner?: Banner) {
+  editingBanner.value = banner || null
+  
+  if (banner) {
+    Object.assign(bannerForm, {
+      title: banner.title,
+      buttonText: banner.buttonText || '',
+      image: banner.image,
+      detailTitle: banner.detailTitle || '',
+      detailContent: banner.detailContent || '',
+      sort: banner.sort
+    })
+  } else {
+    Object.assign(bannerForm, {
+      title: '',
+      buttonText: '',
+      image: '',
+      detailTitle: '',
+      detailContent: '',
+      sort: banners.value.length + 1
+    })
+  }
+  
+  editorVisible.value = true
+}
+
+function saveBanner() {
+  if (editingBanner.value) {
+    Object.assign(editingBanner.value, bannerForm)
+    ElMessage.success('海报已更新')
+  } else {
+    banners.value.push({
+      id: 'banner_' + Date.now(),
+      ...bannerForm,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    } as Banner)
+    ElMessage.success('海报已创建')
+  }
+  editorVisible.value = false
+}
+
+function toggleStatus(banner: Banner) {
+  banner.status = banner.status === 'active' ? 'inactive' : 'active'
+  ElMessage.success(banner.status === 'active' ? '海报已上线' : '海报已下线')
+}
+
+function deleteBannerHandle(banner: Banner) {
+  ElMessageBox.confirm('确定删除该海报？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    const index = banners.value.findIndex(b => b.id === banner.id)
+    if (index > -1) {
+      banners.value.splice(index, 1)
+    }
+    ElMessage.success('海报已删除')
+  }).catch(() => {})
+}
+
+onMounted(() => {
+  banners.value = [...mockBanners]
+})
+</script>
+
+<style scoped lang="scss">
+.banners-page {
+  .banner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  
+  .banner-card {
+    overflow: hidden;
+    
+    .banner-cover {
+      position: relative;
+      height: 180px;
+      
+      .el-image {
+        width: 100%;
+        height: 100%;
+      }
+      
+      .banner-status {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+      }
+    }
+    
+    .banner-content {
+      padding: 16px;
+      
+      .banner-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 4px;
+      }
+      
+      .banner-btn-text {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 12px;
+      }
+      
+      .banner-actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+  }
+}
+</style>

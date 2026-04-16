@@ -120,11 +120,22 @@
   "message": "ok",
   "data": {
     "token": "jwt_token",
+    "user": {
+      "uid": "user_123",
+      "name": "111房间号宝妈",
+      "avatar": "https://cdn.xxx/avatar.png",
+      "memberLevel": "gold",
+      "isLoggedIn": true
+    },
     "refreshToken": "refresh_xxx",
     "expiresIn": 604800
   }
 }
 ```
+
+说明：
+- `user` 字段由后端直接返回，前端可用于初始化用户信息
+- `refreshToken` 和 `expiresIn` 为可选字段，用于 Token 刷新机制
 
 ### 3.2 获取当前用户
 

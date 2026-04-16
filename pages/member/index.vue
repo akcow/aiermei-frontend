@@ -122,6 +122,7 @@ const topServices = [
 const bottomMenus = [
   { id: 'hotline', label: '服务热线', iconPath: '/static/icons/phone.svg' },
   { id: 'evaluation', label: '服务评价', iconPath: '/static/icons/note.svg' },
+  { id: 'complaint', label: '投诉建议', iconPath: '/static/icons/message.svg' },
   { id: 'faq', label: '常见问题', iconPath: '/static/icons/shield.svg' }
 ];
 

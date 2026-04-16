@@ -1,0 +1,212 @@
+// API 响应通用结构
+export interface ApiResponse<T = unknown> {
+  code: number;
+  message: string;
+  data: T;
+  requestId?: string;
+  timestamp?: string;
+}
+
+// 分页响应
+export interface PageResponse<T> {
+  list: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+}
+
+// 管理员信息
+export interface AdminUser {
+  id: string;
+  username: string;
+  name: string;
+  avatar?: string;
+  role: 'admin' | 'editor' | 'viewer';
+  permissions: string[];
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+// 用户信息（C端用户）
+export interface Customer {
+  uid: string;
+  name: string;
+  avatar?: string;
+  phone?: string;
+  memberLevel: string;
+  pregnancyInfo?: {
+    type: string;
+    date: string;
+  };
+  tags: string[];
+  lastActive: string;
+  createdAt: string;
+}
+
+// 用户路径
+export interface UserJourney {
+  uid: string;
+  paths: {
+    path: string;
+    timestamp: string;
+  }[];
+  tags: string[];
+  lastActive: string;
+}
+
+// AI 分析结果
+export interface AnalysisResult {
+  tags: string[];
+  script: string;
+}
+
+// 仪表盘概览
+export interface DashboardOverview {
+  activeCustomers: number;
+  todayVisits: number;
+  orderCount: number;
+  revenue: number;
+  revenueLabel: string;
+  avgStayMinutes: number;
+  leadConversionRate: number;
+  hotContentTitle: string;
+}
+
+// 文章
+export interface Article {
+  id: string;
+  title: string;
+  cover?: string;
+  mediaUrl?: string;
+  type: 'image' | 'video';
+  category: string;
+  categoryLabel: string;
+  author?: string;
+  likes: number;
+  views: number;
+  status: 'draft' | 'published' | 'archived';
+  content?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 文章分类
+export interface ContentCategory {
+  id: string;
+  label: string;
+  sort: number;
+}
+
+// 海报/轮播
+export interface Banner {
+  id: string;
+  title: string;
+  buttonText?: string;
+  image: string;
+  detailTitle?: string;
+  detailContent?: string;
+  sort: number;
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
+// 杂志
+export interface Magazine {
+  id: string;
+  title: string;
+  subtitle?: string;
+  cover: string;
+  author?: string;
+  content: string;
+  status: 'draft' | 'published';
+  publishedAt?: string;
+  createdAt: string;
+}
+
+// 房型
+export interface Suite {
+  id: string;
+  name: string;
+  price: number;
+  priceLabel: string;
+  size: string;
+  features: string[];
+  coverImage: string;
+  images?: string[];
+  description?: string;
+  facilities?: string[];
+  status: 'active' | 'inactive';
+  sort: number;
+}
+
+// 订单
+export interface Order {
+  id: string;
+  orderNo: string;
+  customerId: string;
+  customerName: string;
+  customerPhone?: string;
+  suiteId: string;
+  suiteName: string;
+  originalAmount: number;
+  discountAmount: number;
+  payableAmount: number;
+  payableAmountLabel: string;
+  status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'refunded';
+  paymentMethod?: string;
+  paidAt?: string;
+  createdAt: string;
+  remark?: string;
+}
+
+// 优惠券
+export interface Coupon {
+  id: string;
+  name: string;
+  value: number;
+  valueLabel: string;
+  minAmount?: number;
+  expiry: string;
+  status: 'active' | 'inactive';
+  usedCount: number;
+  totalCount: number;
+  createdAt: string;
+}
+
+// 评价
+export interface Evaluation {
+  id: string;
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  score: number;
+  content?: string;
+  anonymous: boolean;
+  createdAt: string;
+}
+
+// 投诉
+export interface Complaint {
+  id: string;
+  contactName?: string;
+  phone?: string;
+  content: string;
+  relatedService?: string;
+  complaintType: string;
+  status: 'pending' | 'processing' | 'resolved';
+  createdAt: string;
+}
+
+// 登录请求
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+// 登录响应
+export interface LoginResponse {
+  token: string;
+  user: AdminUser;
+}
