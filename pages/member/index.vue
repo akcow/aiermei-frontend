@@ -144,9 +144,33 @@ function openMagazine(id: string) {
   uni.navigateTo({ url: `/pages/member/magazine?id=${id}` });
 }
 
-function handleAuthSuccess() {
-  profile.value = getLocalProfile();
+async function handleAuthSuccess() {
   showAuth.value = false;
+
+  // 调用 /users/me 获取用户信息
+  try {
+    const res = await getCurrentUser();
+    if (res.code === 0 && res.data) {
+      const updatedProfile = {
+        ...getLocalProfile(),
+        ...res.data,
+        isLoggedIn: true,
+        lastActive: res.data.lastActive || Date.now()
+      };
+      setLocalProfile(updatedProfile);
+      profile.value = updatedProfile;
+    }
+  } catch (e) {
+    console.error('Failed to fetch user profile:', e);
+    profile.value = getLocalProfile();
+  }
+
+  // 如果有待访问的页面，跳转
+  if (pendingId.value) {
+    const target = pendingId.value;
+    pendingId.value = '';
+    openSub(target);
+  }
 }
 
 function handleLogout() {
