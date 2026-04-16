@@ -119,7 +119,16 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
 
     // 登录
     case 'POST /api/v1/auth/wechat/login':
-      return createMockResponse({ token: 'mock-token', refreshToken: 'mock-refresh', expiresIn: 7200 });
+      return createMockResponse({
+        token: 'mock-token',
+        user: {
+          uid: 'user_123',
+          name: '111房间号宝妈',
+          avatar: 'https://picsum.photos/seed/avatar/200/200',
+          memberLevel: 'gold',
+          isLoggedIn: true
+        }
+      });
 
     case 'POST /api/v1/auth/logout':
       return createMockResponse(null);

@@ -15,6 +15,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { wechatLogin } from '@/api/modules/auth';
+import { getCurrentUser } from '@/api/modules/member';
 import { saveToken, setLoginState, getLocalProfile, setLocalProfile } from '@/store/session';
 
 const props = defineProps<{ visible: boolean }>();
@@ -28,24 +29,50 @@ const loading = ref(false);
 async function handleLogin() {
   loading.value = true;
   try {
-    // Mock 模式下直接调用登录 API
-    const res = await wechatLogin({ code: 'mock_code' });
-    if (res.code === 0 && res.data) {
-      // 保存 token
-      saveToken(res.data.token);
-      // 更新登录状态
-      setLoginState(true, res.data.token);
-      // 更新用户信息
-      const profile = getLocalProfile();
-      profile.isLoggedIn = true;
-      profile.lastActive = Date.now();
-      setLocalProfile(profile);
-      // 通知父组件登录成功
-      emit('success');
+    // 1. 调用微信登录获取 code
+    const loginRes = await new Promise<UniApp.LoginRes>((resolve, reject) => {
+      uni.login({
+        success: resolve,
+        fail: reject
+      });
+    });
+
+    if (!loginRes.code) {
+      throw new Error('获取微信登录凭证失败');
     }
-  } catch (e) {
+
+    // 2. 发送到后端换取 token
+    const res = await wechatLogin({ code: loginRes.code });
+    if (res.code === 0 && res.data) {
+      // 3. 保存 token
+      saveToken(res.data.token);
+      setLoginState(true, res.data.token);
+
+      // 4. 获取用户信息
+      const userRes = await getCurrentUser();
+      if (userRes.code === 0 && userRes.data) {
+        const profile = getLocalProfile();
+        const updatedProfile = {
+          ...profile,
+          uid: userRes.data.uid,
+          name: userRes.data.name,
+          avatar: userRes.data.avatar,
+          phone: userRes.data.phone,
+          memberLevel: userRes.data.memberLevel,
+          isLoggedIn: true,
+          lastActive: Date.now()
+        };
+        setLocalProfile(updatedProfile);
+      }
+
+      // 5. 通知父组件登录成功
+      emit('success');
+    } else {
+      throw new Error(res.message || '登录失败');
+    }
+  } catch (e: any) {
     console.error('Login failed:', e);
-    uni.showToast({ title: '登录失败，请重试', icon: 'none' });
+    uni.showToast({ title: e.message || '登录失败，请重试', icon: 'none' });
   } finally {
     loading.value = false;
   }

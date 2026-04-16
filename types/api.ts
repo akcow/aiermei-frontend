@@ -22,8 +22,13 @@ export interface WechatLoginReq {
 
 export interface WechatLoginResp {
   token: string;
-  refreshToken: string;
-  expiresIn: number;
+  user: {
+    uid: string;
+    name: string;
+    avatar?: string;
+    memberLevel?: string;
+    isLoggedIn: boolean;
+  };
 }
 
 export interface EvaluationReq {
