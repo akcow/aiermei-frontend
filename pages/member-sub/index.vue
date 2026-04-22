@@ -1,6 +1,6 @@
 <template>
   <view class="page sub-page">
-    <view class="head">
+    <view class="head" :class="{ 'offset-top': isOffsetPage }">
         <view class="back" @click="goBack">
           <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
         </view>
@@ -180,6 +180,8 @@ const titleMap: Record<string, string> = {
 
 const title = computed(() => titleMap[type.value] || '详情');
 
+const isOffsetPage = computed(() => ['evaluation', 'hotline', 'complaint', 'faq'].includes(type.value));
+
 function goBack() {
   uni.navigateBack();
 }
@@ -315,6 +317,10 @@ onLoad(async (query) => {
   font-size: 34rpx;
   letter-spacing: 5rpx;
   color: #111827;
+}
+
+.head.offset-top {
+  padding-top: calc(var(--top-safe-offset) + 30rpx);
 }
 
 .body {
