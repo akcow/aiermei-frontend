@@ -160,7 +160,7 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
 
     // AI对话 - 返回模拟的SSE响应（实际使用时会被SSE连接处理）
     case 'POST /api/v1/ai/chat':
-      return createMockResponse({ sessionId: `chat_${Date.now()}`, content: '这是一条模拟的AI回复。' });
+      return createMockResponse({ sessionId: `chat_${Date.now()}`, msgId: `msg_${Date.now()}`, content: '这是一条模拟的AI回复。' });
 
     default:
       // 动态路由处理

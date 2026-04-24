@@ -184,6 +184,7 @@ let hasMoreHistory = false;
 let isLoadingHistory = ref(false);
 let latestUserMessageRendered = false;
 let pendingAiChatSessionId: string | null = null;
+let pendingAiChatMsgId: string | null = null;
 let aiChatTrackedForCurrentSend = false;
 
 function formatDate(dateStr?: string): string {
@@ -384,6 +385,7 @@ async function send() {
   input.value = '';
   latestUserMessageRendered = false;
   pendingAiChatSessionId = currentSessionId;
+  pendingAiChatMsgId = null;
   aiChatTrackedForCurrentSend = false;
   nextTick(() => {
     scrollToBottom();
@@ -433,6 +435,7 @@ function handleSSEEvent(event: SSEEvent, messageIndex: number) {
       if (currentSessionId) {
         setAiSessionId(currentSessionId);
         pendingAiChatSessionId = currentSessionId;
+        pendingAiChatMsgId = event.data.msgId || (USE_MOCK ? `msg_mock_${Date.now()}` : null);
         tryTrackAiChat();
       }
       break;
@@ -459,13 +462,14 @@ function handleSSEEvent(event: SSEEvent, messageIndex: number) {
 }
 
 function tryTrackAiChat() {
-  if (!latestUserMessageRendered || aiChatTrackedForCurrentSend || !pendingAiChatSessionId) return;
+  if (!latestUserMessageRendered || aiChatTrackedForCurrentSend || !pendingAiChatSessionId || !pendingAiChatMsgId) return;
 
   tracker.track('AI_CHAT', {
     path: '/pages/content/index',
     pathName: 'AI内容问答',
     metadata: {
-      sessionId: pendingAiChatSessionId
+      sessionId: pendingAiChatSessionId,
+      msgId: pendingAiChatMsgId
     }
   });
 

@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view class="poster-cover">
-      <image :src="detail.image || detail.cover" mode="aspectFill" class="cover-image" />
+      <image :src="detail.image" mode="aspectFill" class="cover-image" />
       <view class="back" @click="goBack">
         <image class="back-icon" src="/static/icons/arrow-left.svg" mode="aspectFit" />
       </view>
@@ -76,7 +76,7 @@ function handleAppointment() {
 }
 
 onLoad(async (query) => {
-  const id = String(query.id || '1');
+  const id = String(query?.id || '1');
   trackPath(`海报详情:${id}`);
   
   try {
