@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../request'
-import type { Article, ContentCategory, PageResponse } from '@/types'
+import type { Article, ArticleTag, ContentCategory, PageResponse } from '@/types'
 
 // 获取文章列表
 export function getArticles(params: { 
@@ -60,4 +60,20 @@ export function updateCategory(id: string, data: { label: string; sort: number }
 // 删除分类
 export function deleteCategory(id: string) {
   return del<void>(`/admin/content/categories/${id}`)
+}
+
+export function extractArticleTags(articleId: string) {
+  return post<ArticleTag[]>(`/admin/articles/${articleId}/extract-tags`)
+}
+
+export function getArticleTags(articleId: string) {
+  return get<ArticleTag[]>(`/admin/articles/${articleId}/tags`)
+}
+
+export function addArticleTag(articleId: string, data: { tagCode: string; tagName: string; tagType?: string }) {
+  return post<ArticleTag>(`/admin/articles/${articleId}/tags`, data)
+}
+
+export function deleteArticleTag(articleId: string, tagCode: string) {
+  return del<void>(`/admin/articles/${articleId}/tags/${tagCode}`)
 }

@@ -6,10 +6,17 @@ const TOKEN_KEY = 'aiermei_admin_token'
 const USER_KEY = 'aiermei_admin_user'
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
-  const user = ref<AdminUser | null>(
-    JSON.parse(localStorage.getItem(USER_KEY) || 'null')
-  )
+  const initialToken = localStorage.getItem(TOKEN_KEY)
+  const initialUser = JSON.parse(localStorage.getItem(USER_KEY) || 'null') as AdminUser | null
+
+  // Remove legacy mock credentials to prevent backend integration failures.
+  if (initialToken?.startsWith('mock_token_')) {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  }
+
+  const token = ref<string | null>(initialToken?.startsWith('mock_token_') ? null : initialToken)
+  const user = ref<AdminUser | null>(initialToken?.startsWith('mock_token_') ? null : initialUser)
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')

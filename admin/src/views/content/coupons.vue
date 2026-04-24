@@ -98,14 +98,14 @@
       
       <template #footer>
         <el-button @click="editorVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveCoupon">保存</el-button>
+        <el-button type="primary" :disabled="!canSaveCoupon" @click="saveCoupon">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { mockCoupons } from '@/mock/data'
@@ -123,6 +123,8 @@ const couponForm = reactive({
   expiry: '',
   totalCount: 100
 })
+
+const canSaveCoupon = computed(() => Boolean(couponForm.name.trim()) && couponForm.value > 0)
 
 function formatDate(date: string) {
   return dayjs(date).format('YYYY-MM-DD')
@@ -151,6 +153,10 @@ function showEditor(coupon?: Coupon) {
 }
 
 function saveCoupon() {
+  if (!canSaveCoupon.value) {
+    ElMessage.warning('请先填写必填项：名称、面值')
+    return
+  }
   if (editingCoupon.value) {
     Object.assign(editingCoupon.value, couponForm, {
       valueLabel: `¥${couponForm.value / 100}`

@@ -4,6 +4,14 @@ import { tracker } from '@/utils/tracker';
 export default {
   onLaunch(options) {
     console.log('App Launch');
+    const launchOptions = uni.getLaunchOptionsSync?.() || options || {};
+    tracker.updateScene(launchOptions.scene ?? 0);
+    if (options && options.query) {
+      tracker.setUtmParams(options.query);
+    }
+  },
+  onShow(options) {
+    tracker.updateScene(options?.scene ?? uni.getStorageSync('analytics_scene') ?? 0);
     if (options && options.query) {
       tracker.setUtmParams(options.query);
     }

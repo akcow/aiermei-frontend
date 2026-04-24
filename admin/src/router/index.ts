@@ -1,5 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
+﻿import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const routes: RouteRecordRaw[] = [
@@ -19,13 +18,13 @@ const routes: RouteRecordRaw[] = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
-        meta: { title: '数据概览', icon: 'DataAnalysis' }
+        meta: { title: '仪表盘', icon: 'DataAnalysis' }
       },
       {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/users/index.vue'),
-        meta: { title: '用户管理', icon: 'User' }
+        meta: { title: '客户管理', icon: 'User' }
       },
       {
         path: 'orders',
@@ -49,7 +48,7 @@ const routes: RouteRecordRaw[] = [
             path: 'banners',
             name: 'Banners',
             component: () => import('@/views/content/banners.vue'),
-            meta: { title: '海报管理' }
+            meta: { title: 'Banner管理' }
           },
           {
             path: 'magazines',
@@ -61,7 +60,33 @@ const routes: RouteRecordRaw[] = [
             path: 'suites',
             name: 'Suites',
             component: () => import('@/views/content/suites.vue'),
-            meta: { title: '房型管理' }
+            meta: { title: '套餐管理' }
+          }
+        ]
+      },
+      {
+        path: 'service',
+        name: 'Service',
+        redirect: '/service/faq',
+        meta: { title: '服务配置', icon: 'Setting' },
+        children: [
+          {
+            path: 'faq',
+            name: 'FaqAdmin',
+            component: () => import('@/views/service/faq.vue'),
+            meta: { title: 'FAQ管理' }
+          },
+          {
+            path: 'hotline',
+            name: 'HotlineAdmin',
+            component: () => import('@/views/service/hotline.vue'),
+            meta: { title: '热线管理' }
+          },
+          {
+            path: 'center',
+            name: 'CenterAdmin',
+            component: () => import('@/views/service/center.vue'),
+            meta: { title: '中心配置' }
           }
         ]
       },
@@ -86,14 +111,12 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, _from, next) => {
-  // 设置页面标题
   document.title = `${to.meta.title || '管理后台'} - 爱儿美月子中心`
-  
+
   const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false
-  
+
   if (requiresAuth && !userStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else if (to.name === 'Login' && userStore.isLoggedIn) {

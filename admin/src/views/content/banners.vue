@@ -77,14 +77,14 @@
       
       <template #footer>
         <el-button @click="editorVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveBanner">保存</el-button>
+        <el-button type="primary" :disabled="!canSaveBanner" @click="saveBanner">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { mockBanners } from '@/mock/data'
@@ -103,6 +103,8 @@ const bannerForm = reactive({
   detailContent: '',
   sort: 1
 })
+
+const canSaveBanner = computed(() => Boolean(bannerForm.title.trim()) && Boolean(bannerForm.image.trim()))
 
 function showEditor(banner?: Banner) {
   editingBanner.value = banner || null
@@ -131,6 +133,10 @@ function showEditor(banner?: Banner) {
 }
 
 function saveBanner() {
+  if (!canSaveBanner.value) {
+    ElMessage.warning('请先填写必填项：标题、封面图')
+    return
+  }
   if (editingBanner.value) {
     Object.assign(editingBanner.value, bannerForm)
     ElMessage.success('海报已更新')

@@ -39,7 +39,7 @@ export interface Customer {
     type: string;
     date: string;
   };
-  tags: string[];
+  tags: Array<TagItem | string>;
   lastActive: string;
   createdAt: string;
 }
@@ -57,8 +57,27 @@ export interface UserJourney {
 
 // AI 分析结果
 export interface AnalysisResult {
+  concerns?: TagItem[];
+  anxieties?: TagItem[];
+  behaviors?: TagItem[];
   tags: string[];
   script: string;
+}
+
+export interface TagItem {
+  code?: string;
+  name?: string;
+  tagCode?: string;
+  tagName?: string;
+  source?: string;
+  confidence?: number;
+}
+
+export interface ArticleTag {
+  articleId: string;
+  tagCode: string;
+  tagName: string;
+  source: string;
 }
 
 // 仪表盘概览
@@ -120,7 +139,7 @@ export interface Magazine {
   cover: string;
   author?: string;
   content: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'active' | 'inactive';
   publishedAt?: string;
   createdAt: string;
 }

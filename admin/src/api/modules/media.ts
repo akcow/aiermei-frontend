@@ -1,7 +1,5 @@
-import { get, post, put, del } from '../request'
-import type { Banner, Magazine, Suite, PageResponse } from '@/types'
-
-// ============ 海报管理 ============
+﻿import { del, get, post, put } from '../request'
+import type { Banner, Magazine, Suite } from '@/types'
 
 export function getBanners() {
   return get<Banner[]>('/admin/content/banners')
@@ -23,10 +21,8 @@ export function deleteBanner(id: string) {
   return del<void>(`/admin/content/banners/${id}`)
 }
 
-// ============ 杂志管理 ============
-
-export function getMagazines(params: { page: number; pageSize: number; status?: string }) {
-  return get<PageResponse<Magazine>>('/admin/content/magazines', params)
+export function getMagazines() {
+  return get<Magazine[]>('/admin/content/magazines')
 }
 
 export function getMagazineDetail(id: string) {
@@ -44,8 +40,6 @@ export function updateMagazine(id: string, data: Partial<Magazine>) {
 export function deleteMagazine(id: string) {
   return del<void>(`/admin/content/magazines/${id}`)
 }
-
-// ============ 房型管理 ============
 
 export function getSuites() {
   return get<Suite[]>('/admin/content/suites')

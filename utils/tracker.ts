@@ -12,6 +12,17 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
+interface VisitorTokenPayload {
+  visitorToken: string;
+  expiresAt?: string;
+  ttlSeconds?: number;
+}
+
+interface VisitorTokenCache {
+  token: string;
+  expiresAt: number;
+}
+
 class AnalyticsTracker {
   private queue: AnalyticsEvent[] = [];
   private flushTimer: any = null;
@@ -26,9 +37,35 @@ class AnalyticsTracker {
   private consecutiveFailures = 0;
 
   private utmParams: Record<string, string> = {};
+  private visitorId = '';
+  private visitorTokenCache: VisitorTokenCache | null = null;
+  private visitorTokenPromise: Promise<string | null> | null = null;
+  private sceneFallbackWarned = false;
+
+  private readonly VISITOR_ID_KEY = 'aiermei_visitor_id';
+  private readonly VISITOR_TOKEN_KEY = 'aiermei_visitor_token';
+  private readonly SCENE_KEY = 'analytics_scene';
+  private readonly PLATFORM = 'wechat_mini';
+  private readonly VISITOR_TOKEN_REFRESH_AHEAD_MS = 60 * 1000;
+
+  private readonly PATH_NAME_MAP: Record<string, string> = {
+    '/pages/home/index': 'Home',
+    '/pages/center/index': 'Center Home',
+    '/pages/center/detail': 'Center Detail',
+    '/pages/suite-details/index': 'Suite Detail',
+    '/pages/content/index': 'Content Center',
+    '/pages/content/article': 'Article Detail',
+    '/pages/poster/detail': 'Poster Detail',
+    '/pages/member/index': 'Member Center',
+    '/pages/member/magazine': 'Magazine Detail',
+    '/pages/member/edit-profile': 'Profile Edit',
+    '/pages/member-sub/index': 'Member Subpage'
+  };
 
   constructor() {
     this.utmParams = uni.getStorageSync('aiermei_utm') || {};
+    this.visitorId = this.loadOrCreateVisitorId();
+    this.loadVisitorTokenCache();
   }
 
   public setUtmParams(query: Record<string, any>) {
@@ -51,7 +88,31 @@ class AnalyticsTracker {
     return this.utmParams;
   }
 
+  public updateScene(sceneInput: unknown) {
+    const parsed = Number(sceneInput ?? 0);
+    const scene = Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
+    uni.setStorageSync(this.SCENE_KEY, scene);
+  }
+
+  public getPathName(path: string): string {
+    return this.PATH_NAME_MAP[path] || path;
+  }
+
+  public buildPageViewMetadata(extra: Record<string, any> = {}) {
+    return {
+      platform: this.PLATFORM,
+      scene: this.getScene(),
+      visitorId: this.visitorId,
+      ...extra
+    };
+  }
+
   public track(eventType: string, params: Omit<AnalyticsEvent, 'eventId' | 'occurredAt' | 'eventType'>) {
+    const mergedMetadata = {
+      ...this.utmParams,
+      ...(params.metadata || {})
+    };
+
     const event: AnalyticsEvent = {
       eventId: this.generateUUID(),
       eventType,
@@ -59,10 +120,7 @@ class AnalyticsTracker {
       pathName: params.pathName,
       occurredAt: this.getISO8601WithTimezone(),
       durationSeconds: params.durationSeconds,
-      metadata: {
-        ...this.utmParams,
-        ...(params.metadata || {})
-      }
+      metadata: this.normalizeMetadata(eventType, mergedMetadata)
     };
 
     this.queue.push(event);
@@ -92,20 +150,21 @@ class AnalyticsTracker {
       return;
     }
 
-    // Current backend requires bearer token for this endpoint.
-    if (!getToken()) {
-      this.resetTimer(this.FLUSH_INTERVAL_MS);
-      return;
-    }
-
     this.isFlushing = true;
     const batchSize = Math.min(this.queue.length, this.MAX_QUEUE_SIZE);
     const eventsToSend = this.queue.slice(0, batchSize);
 
     try {
+      const requestHeader = await this.buildAuthHeader();
+      if (!requestHeader) {
+        this.resetTimer(this.retryDelayMs);
+        return;
+      }
+
       const res = await httpRequest({
         url: '/api/v1/analytics/events/batch',
         method: 'POST',
+        header: requestHeader,
         data: {
           events: eventsToSend
         }
@@ -175,6 +234,145 @@ class AnalyticsTracker {
 
     return localISOTime.split('.')[0] + offsetString;
   }
+
+  private normalizeMetadata(eventType: string, metadata: Record<string, any>) {
+    // PAGE_VIEW / CLICK are required to carry platform + scene + visitorId.
+    if (eventType === 'PAGE_VIEW' || eventType === 'CLICK') {
+      return {
+        ...metadata,
+        platform: this.PLATFORM,
+        scene: this.getScene(),
+        visitorId: this.visitorId
+      };
+    }
+    return metadata;
+  }
+
+  private getScene(): number {
+    const raw = uni.getStorageSync(this.SCENE_KEY);
+    if (raw === '' || raw === null || raw === undefined) {
+      if (!this.sceneFallbackWarned) {
+        console.warn('[Tracker] analytics scene missing, fallback to 0');
+        this.sceneFallbackWarned = true;
+      }
+      return 0;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      if (!this.sceneFallbackWarned) {
+        console.warn('[Tracker] analytics scene invalid, fallback to 0');
+        this.sceneFallbackWarned = true;
+      }
+      return 0;
+    }
+
+    return Math.trunc(parsed);
+  }
+
+  private loadOrCreateVisitorId(): string {
+    const stored = uni.getStorageSync(this.VISITOR_ID_KEY);
+    if (typeof stored === 'string' && stored) {
+      return stored;
+    }
+    const visitorId = this.generateUUID();
+    uni.setStorageSync(this.VISITOR_ID_KEY, visitorId);
+    return visitorId;
+  }
+
+  private loadVisitorTokenCache() {
+    const raw = uni.getStorageSync(this.VISITOR_TOKEN_KEY);
+    if (!raw || typeof raw !== 'object') return;
+    const token = String((raw as any).token || '');
+    const expiresAt = Number((raw as any).expiresAt || 0);
+    if (!token || !Number.isFinite(expiresAt)) return;
+    this.visitorTokenCache = { token, expiresAt };
+  }
+
+  private async buildAuthHeader(): Promise<Record<string, string> | null> {
+    const bearerToken = getToken();
+    if (bearerToken) {
+      return {};
+    }
+
+    const visitorToken = await this.ensureVisitorToken();
+    if (!visitorToken) {
+      return null;
+    }
+
+    return {
+      'X-Analytics-Visitor-Token': visitorToken
+    };
+  }
+
+  private async ensureVisitorToken(): Promise<string | null> {
+    const now = Date.now();
+    if (this.visitorTokenCache && this.visitorTokenCache.expiresAt - now > this.VISITOR_TOKEN_REFRESH_AHEAD_MS) {
+      return this.visitorTokenCache.token;
+    }
+
+    if (this.visitorTokenPromise) {
+      return this.visitorTokenPromise;
+    }
+
+    this.visitorTokenPromise = this.requestVisitorToken().finally(() => {
+      this.visitorTokenPromise = null;
+    });
+
+    return this.visitorTokenPromise;
+  }
+
+  private async requestVisitorToken(): Promise<string | null> {
+    if (USE_MOCK) {
+      const expiresAt = Date.now() + 30 * 60 * 1000;
+      this.persistVisitorToken('mock_visitor_token', expiresAt);
+      return 'mock_visitor_token';
+    }
+
+    try {
+      const res = await httpRequest<VisitorTokenPayload>({
+        url: '/api/v1/analytics/visitor-token',
+        method: 'POST',
+        data: {
+          visitorId: this.visitorId
+        }
+      });
+
+      if (res.code !== 0 || !res.data?.visitorToken) {
+        throw new Error(`Business error: ${res.code}`);
+      }
+
+      const expiresAtMs = this.resolveVisitorTokenExpireAt(res.data);
+      this.persistVisitorToken(res.data.visitorToken, expiresAtMs);
+      return res.data.visitorToken;
+    } catch (error) {
+      console.error('[Tracker] Failed to fetch visitor token', error);
+      return null;
+    }
+  }
+
+  private resolveVisitorTokenExpireAt(data: VisitorTokenPayload): number {
+    const fromExpiresAt = data.expiresAt ? new Date(data.expiresAt).getTime() : 0;
+    if (Number.isFinite(fromExpiresAt) && fromExpiresAt > Date.now()) {
+      return fromExpiresAt;
+    }
+
+    const ttlSeconds = Number(data.ttlSeconds || 0);
+    if (Number.isFinite(ttlSeconds) && ttlSeconds > 0) {
+      return Date.now() + ttlSeconds * 1000;
+    }
+
+    return Date.now() + 25 * 60 * 1000;
+  }
+
+  private persistVisitorToken(token: string, expiresAt: number) {
+    this.visitorTokenCache = {
+      token,
+      expiresAt
+    };
+    uni.setStorageSync(this.VISITOR_TOKEN_KEY, this.visitorTokenCache);
+  }
 }
 
 export const tracker = new AnalyticsTracker();
+
