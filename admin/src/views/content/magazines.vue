@@ -33,7 +33,7 @@
           <el-input v-model="magazineForm.subtitle" />
         </el-form-item>
         <el-form-item label="封面" required>
-          <ImageUpload v-model="magazineForm.cover" />
+          <ImageUpload v-model="magazineForm.cover" biz-type="magazine_cover" />
         </el-form-item>
         <el-form-item label="作者">
           <el-input v-model="magazineForm.author" />

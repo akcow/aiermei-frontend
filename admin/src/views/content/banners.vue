@@ -54,7 +54,7 @@
         </el-form-item>
         
         <el-form-item label="封面图" required>
-          <ImageUpload v-model="bannerForm.image" />
+          <ImageUpload v-model="bannerForm.image" biz-type="banner_image" />
         </el-form-item>
         
         <el-form-item label="详情标题">

@@ -7,51 +7,21 @@
       </div>
 
       <el-menu :default-active="activeMenu" :collapse="isCollapse" :collapse-transition="false" router class="layout-menu">
-        <el-menu-item index="/dashboard">
-          <el-icon><DataAnalysis /></el-icon>
-          <template #title>仪表盘</template>
-        </el-menu-item>
-
-        <el-menu-item index="/users">
-          <el-icon><User /></el-icon>
-          <template #title>客户管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/orders">
-          <el-icon><Document /></el-icon>
-          <template #title>订单管理</template>
-        </el-menu-item>
-
-        <el-sub-menu index="/content">
-          <template #title>
-            <el-icon><DocumentCopy /></el-icon>
-            <span>内容管理</span>
-          </template>
-          <el-menu-item index="/content/articles">文章管理</el-menu-item>
-          <el-menu-item index="/content/banners">Banner管理</el-menu-item>
-          <el-menu-item index="/content/magazines">杂志管理</el-menu-item>
-          <el-menu-item index="/content/suites">套餐管理</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu index="/service">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>服务配置</span>
-          </template>
-          <el-menu-item index="/service/faq">FAQ管理</el-menu-item>
-          <el-menu-item index="/service/hotline">热线管理</el-menu-item>
-          <el-menu-item index="/service/center">中心配置</el-menu-item>
-        </el-sub-menu>
-
-        <el-menu-item index="/coupons">
-          <el-icon><Ticket /></el-icon>
-          <template #title>优惠券管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/feedback">
-          <el-icon><ChatDotRound /></el-icon>
-          <template #title>反馈管理</template>
-        </el-menu-item>
+        <template v-for="item in visibleMenus" :key="item.index">
+          <el-sub-menu v-if="item.children?.length" :index="item.index">
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item v-for="child in item.children" :key="child.index" :index="child.index">
+              {{ child.title }}
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="item.index">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
 
@@ -69,6 +39,7 @@
             <div class="user-info">
               <el-avatar :size="32" :src="userStore.user?.avatar">{{ userStore.user?.name?.charAt(0) }}</el-avatar>
               <span class="user-name">{{ userStore.user?.name }}</span>
+              <el-tag size="small" type="info">{{ userStore.isAdmin ? '管理员' : '员工' }}</el-tag>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
@@ -99,13 +70,17 @@ import { ElMessageBox } from 'element-plus'
 import {
   ArrowDown,
   ChatDotRound,
+  Checked,
   DataAnalysis,
+  DataLine,
   Document,
   DocumentCopy,
   Expand,
   Fold,
+  OfficeBuilding,
   Setting,
   Ticket,
+  TrendCharts,
   User
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -116,6 +91,52 @@ const userStore = useUserStore()
 
 const isCollapse = ref(false)
 const activeMenu = computed(() => route.path)
+
+type MenuNode = {
+  index: string
+  title: string
+  icon: any
+  children?: Array<{ index: string; title: string }>
+}
+
+const employeeMenus: MenuNode[] = [
+  { index: '/dashboard', title: '仪表盘', icon: DataAnalysis },
+  { index: '/users', title: '客户管理', icon: User },
+  { index: '/orders', title: '订单管理', icon: Document },
+  {
+    index: '/content',
+    title: '内容管理',
+    icon: DocumentCopy,
+    children: [
+      { index: '/content/articles', title: '文章管理' },
+      { index: '/content/banners', title: 'Banner管理' },
+      { index: '/content/magazines', title: '杂志管理' },
+      { index: '/content/suites', title: '套餐管理' }
+    ]
+  },
+  {
+    index: '/service',
+    title: '服务配置',
+    icon: Setting,
+    children: [
+      { index: '/service/faq', title: 'FAQ管理' },
+      { index: '/service/hotline', title: '热线管理' },
+      { index: '/service/center', title: '中心配置' }
+    ]
+  },
+  { index: '/coupons', title: '优惠券管理', icon: Ticket },
+  { index: '/feedback', title: '反馈管理', icon: ChatDotRound }
+]
+
+const adminMenus: MenuNode[] = [
+  { index: '/console/dashboard', title: '仪表盘', icon: DataAnalysis },
+  { index: '/console/approvals', title: '标签审批池', icon: Checked },
+  { index: '/console/scoring', title: '评分权重', icon: DataLine },
+  { index: '/console/decay', title: '衰减参数', icon: TrendCharts },
+  { index: '/console/facilities', title: '设施字典管理', icon: OfficeBuilding }
+]
+
+const visibleMenus = computed(() => (userStore.isAdmin ? adminMenus : employeeMenus))
 
 function handleCommand(command: string) {
   if (command === 'logout') {
@@ -140,6 +161,8 @@ function handleCommand(command: string) {
   background: #111827;
   transition: width 0.3s;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
@@ -173,7 +196,14 @@ function handleCommand(command: string) {
 
 .layout-menu {
   border-right: none;
-  background: transparent;
+  background: #111827 !important;
+  flex: 1;
+  min-height: 0;
+}
+
+.layout-menu :deep(.el-menu) {
+  background: #111827 !important;
+  border-right: none !important;
 }
 
 .layout-menu:not(.el-menu--collapse) {
@@ -182,28 +212,56 @@ function handleCommand(command: string) {
 
 .layout-menu :deep(.el-menu-item),
 .layout-menu :deep(.el-sub-menu__title) {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.72) !important;
   height: 48px;
   line-height: 48px;
+  border-left: 3px solid transparent;
+}
+
+.layout-menu :deep(.el-menu-item:not(.is-active)),
+.layout-menu :deep(.el-sub-menu__title) {
+  color: rgba(255, 255, 255, 0.72) !important;
 }
 
 .layout-menu :deep(.el-menu-item:hover),
 .layout-menu :deep(.el-sub-menu__title:hover) {
-  background-color: rgba(255, 255, 255, 0.06);
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .layout-menu :deep(.el-menu-item.is-active) {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)) !important;
+  border-left-color: #93c5fd;
+  font-weight: 600;
 }
 
 .layout-menu :deep(.el-sub-menu .el-menu) {
-  background: #1a1f2c;
+  background: #151b27 !important;
 }
 
 .layout-menu :deep(.el-sub-menu .el-menu-item) {
   padding-left: 50px !important;
   min-width: auto;
+  color: rgba(255, 255, 255, 0.72) !important;
+  border-left: 3px solid transparent;
+}
+
+.layout-menu :deep(.el-sub-menu .el-menu-item:hover) {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.layout-menu :deep(.el-sub-menu .el-menu-item.is-active) {
+  color: #fff !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)) !important;
+  border-left-color: #93c5fd;
+  font-weight: 600;
+}
+
+.layout-menu :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .layout-main {

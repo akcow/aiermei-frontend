@@ -57,18 +57,18 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { uploadFile } from '@/api/modules/admin-console'
 import { addHotline, deleteHotline, getHotlineConfig, updateHotlineConfig, type Hotline } from '@/api/modules/hotline'
 
 const hotlines = ref<Hotline[]>([])
 const configForm = reactive({ serviceQrCodeUrl: '', serviceQrTips: '' })
-const handleFileUpload = (file: any, key: 'serviceQrCodeUrl') => {
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    configForm[key] = e.target?.result as string
-  }
-  reader.readAsDataURL(file.raw)
+async function handleFileUpload(file: any, key: 'serviceQrCodeUrl') {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const res = await uploadFile(raw, 'service_qrcode')
+  configForm[key] = res.data.url
 }
-const handleQrChange = (file: any) => handleFileUpload(file, 'serviceQrCodeUrl')
+const handleQrChange = (file: any) => void handleFileUpload(file, 'serviceQrCodeUrl')
 
 const dialogVisible = ref(false)
 const editingHotline = ref<Hotline | null>(null)

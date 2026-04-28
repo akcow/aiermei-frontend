@@ -20,6 +20,7 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
+  const isEmployee = computed(() => isLoggedIn.value && !isAdmin.value)
 
   function setToken(newToken: string) {
     token.value = newToken
@@ -54,6 +55,7 @@ export const useUserStore = defineStore('user', () => {
     user,
     isLoggedIn,
     isAdmin,
+    isEmployee,
     setToken,
     setUser,
     login,

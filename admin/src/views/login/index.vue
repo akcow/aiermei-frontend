@@ -34,6 +34,12 @@
           </el-button>
         </el-form-item>
       </el-form>
+
+      <div v-if="showMockTips" class="mock-tips">
+        <div class="mock-title">Mock 测试账号</div>
+        <div class="mock-item">管理员：<b>admin / admin123</b></div>
+        <div class="mock-item">员工：<b>staff / staff123</b></div>
+      </div>
     </div>
   </div>
 </template>
@@ -52,6 +58,7 @@ const userStore = useUserStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const showMockTips = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK === 'true'
 
 const form = reactive({
   username: '',
@@ -78,7 +85,11 @@ async function handleLogin() {
     ElMessage.success('登录成功')
 
     const redirect = route.query.redirect as string | undefined
-    await router.push(redirect || { name: 'Dashboard' })
+    if (redirect) {
+      await router.push(redirect)
+    } else {
+      await router.push(userStore.isAdmin ? { name: 'AdminDashboard' } : { name: 'Dashboard' })
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '登录失败'
     ElMessage.error(message)
@@ -135,5 +146,26 @@ async function handleLogin() {
   border-radius: 8px;
   font-size: 16px;
   letter-spacing: 2px;
+}
+
+.mock-tips {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.mock-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.mock-item {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.7;
 }
 </style>

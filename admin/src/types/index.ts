@@ -22,10 +22,119 @@ export interface AdminUser {
   username: string;
   name: string;
   avatar?: string;
-  role: 'admin' | 'editor' | 'viewer';
+  role: 'admin' | 'editor' | 'viewer' | 'staff';
   permissions: string[];
   createdAt: string;
   lastLoginAt?: string;
+}
+
+export type UserRole = AdminUser['role']
+
+export interface TagPendingCandidate {
+  tagCode: string;
+  tagName: string;
+  similarity: number;
+  rankNo: number;
+}
+
+export interface TagPendingItem {
+  pendingId: string;
+  tagCode: string;
+  tagName: string;
+  aiReason: string;
+  similarTag?: string | null;
+  similarity?: number | null;
+  mentionCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'MERGED';
+  candidateCount: number;
+  topCandidate?: TagPendingCandidate | null;
+}
+
+export interface TagPendingDetail extends TagPendingItem {
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  reviewAction?: 'APPROVE' | 'REJECT' | 'MERGE' | null;
+  mergedToTagCode?: string | null;
+  candidates: TagPendingCandidate[];
+}
+
+export interface TagMention {
+  uid: string;
+  userName?: string | null;
+  articleId?: string | null;
+  sourceType: string;
+  sourceContext?: string | null;
+  sourceEventId?: string | null;
+  sourceEventType?: string | null;
+  chatSessionId?: string | null;
+  chatMessageId?: string | null;
+  chatMessageSeqNo?: number | null;
+  analysisRecordId?: string | null;
+  createdAt: string;
+}
+
+export interface TagReviewRequest {
+  action: 'APPROVE' | 'REJECT' | 'MERGE';
+  targetTagCode?: string;
+  description?: string;
+}
+
+export interface TagReviewResult {
+  pendingId: string;
+  finalStatus: 'APPROVED' | 'REJECTED' | 'MERGED';
+  resolvedTagCode?: string | null;
+  backfilledUserCount: number;
+  removedPendingUserTagCount: number;
+}
+
+export interface ScoringWeights {
+  conversionIntent: number;
+  spendingPower: number;
+  recentActivity: number;
+  total: number;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface DecayConfigItem {
+  eventType: string;
+  eventLabel: string;
+  initialWeight: number;
+  lambda: number;
+  minWeight: number;
+}
+
+export interface TrafficSourceItem {
+  sourceChannel: 'mini_search' | 'friend_share' | 'ai_transfer' | 'other';
+  label: string;
+  count: number;
+  ratio: number;
+}
+
+export interface TrafficSourcesStat {
+  days: number;
+  total: number;
+  sources: TrafficSourceItem[];
+}
+
+export interface CenterFacility {
+  id: string;
+  title: string;
+  desc?: string;
+  image?: string;
+  sort: number;
+}
+
+export interface UploadFileResponse {
+  fileId: string;
+  url: string;
+  objectKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  bizType: string;
+  uploadedAt: string;
 }
 
 // 用户信息（C端用户）

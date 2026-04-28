@@ -88,6 +88,7 @@ export interface AiSessionMessagesResp {
 
 export interface UpdateUserReq {
   name?: string;
+  avatar?: string;
   phone?: string;
   pregnancyType?: 'pregnancy' | 'postpartum';
   pregnancyDate?: string;

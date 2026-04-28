@@ -1,4 +1,6 @@
 import { httpRequest, createSSEConnection, type SSEEvent } from '@/api/http';
+import { API_BASE_URL } from '@/api/config';
+import { getToken } from '@/store/session';
 import type { EvaluationReq, ComplaintReq, AiChatReq, AiChatStartEvent, AiChatDeltaEvent, AiChatSuggestionEvent, AiChatDoneEvent, AiChatErrorEvent, AiSessionMessagesResp, UpdateUserReq } from '@/types/api';
 import type { Coupon, PostpartumService, FaqCategory, FaqItem, ServiceHotlines, Suite, MagazineDetail } from '@/types/domain';
 
@@ -149,5 +151,36 @@ export function updateCurrentUser(payload: UpdateUserReq) {
     url: '/api/v1/users/me',
     method: 'PUT',
     data: payload
+  });
+}
+
+export function uploadUserAvatar(filePath: string) {
+  const token = getToken();
+  return new Promise<{
+    code: number;
+    message: string;
+    data: { url: string; bizType: string; fileId: string };
+    requestId?: string;
+  }>((resolve, reject) => {
+    uni.uploadFile({
+      url: `${API_BASE_URL}/api/v1/files/upload`,
+      filePath,
+      name: 'file',
+      formData: { bizType: 'user_avatar' },
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      success: (res) => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        try {
+          const parsed = JSON.parse(res.data || '{}');
+          resolve(parsed);
+        } catch (e) {
+          reject(e);
+        }
+      },
+      fail: (err) => reject(err)
+    });
   });
 }

@@ -99,6 +99,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { uploadFile } from '@/api/modules/admin-console'
 import {
   createCenterSection,
   deleteCenterSection,
@@ -132,25 +133,24 @@ const sectionForm = reactive({
 
 const canSaveSection = computed(() => Boolean(sectionForm.title.trim()) && Boolean(sectionForm.coverImage.trim()))
 
-const handleHomeFileUpload = (file: any, key: 'heroImage') => {
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    homeForm[key] = e.target?.result as string
-  }
-  reader.readAsDataURL(file.raw)
+async function handleHomeFileUpload(file: any, key: 'heroImage') {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const res = await uploadFile(raw, 'center_hero')
+  homeForm[key] = res.data.url
 }
 
-const handleSectionFileUpload = (file: any, key: 'coverImage' | 'detailImage') => {
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    sectionForm[key] = e.target?.result as string
-  }
-  reader.readAsDataURL(file.raw)
+async function handleSectionFileUpload(file: any, key: 'coverImage' | 'detailImage') {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const bizType = key === 'coverImage' ? 'center_section_cover' : 'center_section_detail'
+  const res = await uploadFile(raw, bizType)
+  sectionForm[key] = res.data.url
 }
 
-const handleHomeHeroChange = (file: any) => handleHomeFileUpload(file, 'heroImage')
-const handleSectionCoverChange = (file: any) => handleSectionFileUpload(file, 'coverImage')
-const handleSectionDetailChange = (file: any) => handleSectionFileUpload(file, 'detailImage')
+const handleHomeHeroChange = (file: any) => void handleHomeFileUpload(file, 'heroImage')
+const handleSectionCoverChange = (file: any) => void handleSectionFileUpload(file, 'coverImage')
+const handleSectionDetailChange = (file: any) => void handleSectionFileUpload(file, 'detailImage')
 
 async function reloadAll() {
   const [homeRes, sectionsRes] = await Promise.all([getCenterHomeConfig(), getCenterSections()])

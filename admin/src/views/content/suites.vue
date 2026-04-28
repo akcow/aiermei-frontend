@@ -37,7 +37,7 @@
           <el-col :span="12"><el-form-item label="价格(分)"><el-input-number v-model="suiteForm.price" :min="0" style="width:100%" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="排序"><el-input-number v-model="suiteForm.sort" :min="1" style="width:100%" /></el-form-item></el-col>
         </el-row>
-        <el-form-item label="封面" required><ImageUpload v-model="suiteForm.coverImage" /></el-form-item>
+        <el-form-item label="封面" required><ImageUpload v-model="suiteForm.coverImage" biz-type="suite_cover" /></el-form-item>
         <el-form-item label="特色"><el-select v-model="suiteForm.features" multiple allow-create filterable style="width:100%" /></el-form-item>
         <el-form-item label="设施"><el-select v-model="suiteForm.facilities" multiple allow-create filterable style="width:100%" /></el-form-item>
         <el-form-item label="描述"><el-input v-model="suiteForm.description" type="textarea" :rows="3" /></el-form-item>

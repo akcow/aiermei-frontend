@@ -1,6 +1,130 @@
 ﻿import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
+const employeeChildren: RouteRecordRaw[] = [
+  {
+    path: 'dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/dashboard/index.vue'),
+    meta: { title: '仪表盘', icon: 'DataAnalysis', roles: ['editor', 'viewer', 'staff'] }
+  },
+  {
+    path: 'users',
+    name: 'Users',
+    component: () => import('@/views/users/index.vue'),
+    meta: { title: '客户管理', icon: 'User', roles: ['editor', 'viewer', 'staff'] }
+  },
+  {
+    path: 'orders',
+    name: 'Orders',
+    component: () => import('@/views/orders/index.vue'),
+    meta: { title: '订单管理', icon: 'Document', roles: ['editor', 'viewer', 'staff'] }
+  },
+  {
+    path: 'content',
+    name: 'Content',
+    redirect: '/content/articles',
+    meta: { title: '内容管理', icon: 'DocumentCopy', roles: ['editor', 'viewer', 'staff'] },
+    children: [
+      {
+        path: 'articles',
+        name: 'Articles',
+        component: () => import('@/views/content/articles.vue'),
+        meta: { title: '文章管理', roles: ['editor', 'viewer', 'staff'] }
+      },
+      {
+        path: 'banners',
+        name: 'Banners',
+        component: () => import('@/views/content/banners.vue'),
+        meta: { title: 'Banner管理', roles: ['editor', 'viewer', 'staff'] }
+      },
+      {
+        path: 'magazines',
+        name: 'Magazines',
+        component: () => import('@/views/content/magazines.vue'),
+        meta: { title: '杂志管理', roles: ['editor', 'viewer', 'staff'] }
+      },
+      {
+        path: 'suites',
+        name: 'Suites',
+        component: () => import('@/views/content/suites.vue'),
+        meta: { title: '套餐管理', roles: ['editor', 'viewer', 'staff'] }
+      }
+    ]
+  },
+  {
+    path: 'service',
+    name: 'Service',
+    redirect: '/service/faq',
+    meta: { title: '服务配置', icon: 'Setting', roles: ['editor', 'viewer', 'staff'] },
+    children: [
+      {
+        path: 'faq',
+        name: 'FaqAdmin',
+        component: () => import('@/views/service/faq.vue'),
+        meta: { title: 'FAQ管理', roles: ['editor', 'viewer', 'staff'] }
+      },
+      {
+        path: 'hotline',
+        name: 'HotlineAdmin',
+        component: () => import('@/views/service/hotline.vue'),
+        meta: { title: '热线管理', roles: ['editor', 'viewer', 'staff'] }
+      },
+      {
+        path: 'center',
+        name: 'CenterAdmin',
+        component: () => import('@/views/service/center.vue'),
+        meta: { title: '中心配置', roles: ['editor', 'viewer', 'staff'] }
+      }
+    ]
+  },
+  {
+    path: 'coupons',
+    name: 'Coupons',
+    component: () => import('@/views/content/coupons.vue'),
+    meta: { title: '优惠券管理', icon: 'Ticket', roles: ['editor', 'viewer', 'staff'] }
+  },
+  {
+    path: 'feedback',
+    name: 'Feedback',
+    component: () => import('@/views/content/feedback.vue'),
+    meta: { title: '反馈管理', icon: 'ChatDotRound', roles: ['editor', 'viewer', 'staff'] }
+  }
+]
+
+const adminChildren: RouteRecordRaw[] = [
+  {
+    path: 'console/dashboard',
+    name: 'AdminDashboard',
+    component: () => import('@/views/console/dashboard.vue'),
+    meta: { title: '仪表盘', icon: 'DataAnalysis', roles: ['admin'] }
+  },
+  {
+    path: 'console/approvals',
+    name: 'TagApprovals',
+    component: () => import('@/views/console/tag-approvals.vue'),
+    meta: { title: '标签审批池', icon: 'Checked', roles: ['admin'] }
+  },
+  {
+    path: 'console/scoring',
+    name: 'ScoringWeights',
+    component: () => import('@/views/console/scoring-weights.vue'),
+    meta: { title: '评分权重', icon: 'DataLine', roles: ['admin'] }
+  },
+  {
+    path: 'console/decay',
+    name: 'DecayConfig',
+    component: () => import('@/views/console/decay-config.vue'),
+    meta: { title: '衰减参数', icon: 'TrendCharts', roles: ['admin'] }
+  },
+  {
+    path: 'console/facilities',
+    name: 'CenterFacilities',
+    component: () => import('@/views/console/center-facilities.vue'),
+    meta: { title: '设施字典管理', icon: 'OfficeBuilding', roles: ['admin'] }
+  }
+]
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -11,98 +135,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/views/layout/index.vue'),
-    redirect: '/dashboard',
     meta: { requiresAuth: true },
-    children: [
-      {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('@/views/dashboard/index.vue'),
-        meta: { title: '仪表盘', icon: 'DataAnalysis' }
-      },
-      {
-        path: 'users',
-        name: 'Users',
-        component: () => import('@/views/users/index.vue'),
-        meta: { title: '客户管理', icon: 'User' }
-      },
-      {
-        path: 'orders',
-        name: 'Orders',
-        component: () => import('@/views/orders/index.vue'),
-        meta: { title: '订单管理', icon: 'Document' }
-      },
-      {
-        path: 'content',
-        name: 'Content',
-        redirect: '/content/articles',
-        meta: { title: '内容管理', icon: 'DocumentCopy' },
-        children: [
-          {
-            path: 'articles',
-            name: 'Articles',
-            component: () => import('@/views/content/articles.vue'),
-            meta: { title: '文章管理' }
-          },
-          {
-            path: 'banners',
-            name: 'Banners',
-            component: () => import('@/views/content/banners.vue'),
-            meta: { title: 'Banner管理' }
-          },
-          {
-            path: 'magazines',
-            name: 'Magazines',
-            component: () => import('@/views/content/magazines.vue'),
-            meta: { title: '杂志管理' }
-          },
-          {
-            path: 'suites',
-            name: 'Suites',
-            component: () => import('@/views/content/suites.vue'),
-            meta: { title: '套餐管理' }
-          }
-        ]
-      },
-      {
-        path: 'service',
-        name: 'Service',
-        redirect: '/service/faq',
-        meta: { title: '服务配置', icon: 'Setting' },
-        children: [
-          {
-            path: 'faq',
-            name: 'FaqAdmin',
-            component: () => import('@/views/service/faq.vue'),
-            meta: { title: 'FAQ管理' }
-          },
-          {
-            path: 'hotline',
-            name: 'HotlineAdmin',
-            component: () => import('@/views/service/hotline.vue'),
-            meta: { title: '热线管理' }
-          },
-          {
-            path: 'center',
-            name: 'CenterAdmin',
-            component: () => import('@/views/service/center.vue'),
-            meta: { title: '中心配置' }
-          }
-        ]
-      },
-      {
-        path: 'coupons',
-        name: 'Coupons',
-        component: () => import('@/views/content/coupons.vue'),
-        meta: { title: '优惠券管理', icon: 'Ticket' }
-      },
-      {
-        path: 'feedback',
-        name: 'Feedback',
-        component: () => import('@/views/content/feedback.vue'),
-        meta: { title: '反馈管理', icon: 'ChatDotRound' }
-      }
-    ]
+    children: [...employeeChildren, ...adminChildren]
   }
 ]
 
@@ -110,6 +144,10 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+function isAdminPath(path: string) {
+  return path.startsWith('/console/')
+}
 
 router.beforeEach((to, _from, next) => {
   document.title = `${to.meta.title || '管理后台'} - 爱儿美月子中心`
@@ -119,11 +157,35 @@ router.beforeEach((to, _from, next) => {
 
   if (requiresAuth && !userStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if (to.name === 'Login' && userStore.isLoggedIn) {
-    next({ name: 'Dashboard' })
-  } else {
-    next()
+    return
   }
+
+  if (to.name === 'Login' && userStore.isLoggedIn) {
+    next(userStore.isAdmin ? { name: 'AdminDashboard' } : { name: 'Dashboard' })
+    return
+  }
+
+  if (!requiresAuth) {
+    next()
+    return
+  }
+
+  if (to.path === '/') {
+    next(userStore.isAdmin ? { name: 'AdminDashboard' } : { name: 'Dashboard' })
+    return
+  }
+
+  if (userStore.isAdmin && !isAdminPath(to.path)) {
+    next({ name: 'AdminDashboard' })
+    return
+  }
+
+  if (userStore.isEmployee && isAdminPath(to.path)) {
+    next({ name: 'Dashboard' })
+    return
+  }
+
+  next()
 })
 
 export default router

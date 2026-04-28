@@ -106,7 +106,54 @@ const state = {
       updatedAt: new Date().toISOString()
     }
   ] as AnyObj[],
-  articleTags: new Map<string, AnyObj[]>()
+  articleTags: new Map<string, AnyObj[]>(),
+  tagPending: [
+    {
+      pendingId: '205001',
+      tagCode: 'auto_1177456945',
+      tagName: '新手妈妈焦虑',
+      aiReason: '近7天多条咨询内容体现明显焦虑情绪，建议作为新标签审批',
+      similarTag: '产后情绪支持',
+      similarity: 0.62122,
+      mentionCount: 8,
+      firstSeenAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+      status: 'PENDING',
+      candidateCount: 2,
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewAction: null,
+      mergedToTagCode: null,
+      candidates: [
+        { tagCode: 'postpartum_emotion_support', tagName: '产后情绪支持', similarity: 0.62122, rankNo: 1 },
+        { tagCode: 'new_mother_anxiety', tagName: '新手妈妈焦虑', similarity: 0.59012, rankNo: 2 }
+      ]
+    }
+  ] as AnyObj[],
+  scoringWeights: {
+    conversionIntent: 50,
+    spendingPower: 30,
+    recentActivity: 20,
+    total: 100,
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'admin_001'
+  } as AnyObj,
+  decayConfig: [
+    { eventType: 'PAGE_VIEW', eventLabel: '页面浏览', initialWeight: 1.0, lambda: 0.03, minWeight: 0.01 },
+    { eventType: 'CLICK', eventLabel: '关键点击', initialWeight: 1.2, lambda: 0.028, minWeight: 0.01 },
+    { eventType: 'ARTICLE_VIEW', eventLabel: '文章阅读', initialWeight: 1.5, lambda: 0.025, minWeight: 0.01 },
+    { eventType: 'AI_CHAT', eventLabel: 'AI咨询', initialWeight: 2.0, lambda: 0.02, minWeight: 0.01 },
+    { eventType: 'APPOINTMENT_INTENT', eventLabel: '预约意向', initialWeight: 2.5, lambda: 0.018, minWeight: 0.02 }
+  ] as AnyObj[],
+  trafficSources: [
+    { sourceChannel: 'mini_search', label: '小程序搜索', count: 45, ratio: 0.45 },
+    { sourceChannel: 'friend_share', label: '朋友圈分享', count: 32, ratio: 0.32 },
+    { sourceChannel: 'ai_transfer', label: 'AI客服转接', count: 23, ratio: 0.23 }
+  ] as AnyObj[],
+  centerFacilities: [
+    { id: '205888001', title: '瑜伽康复室', desc: '用于产后拉伸与体态修复课程', image: 'https://picsum.photos/seed/fac_1/600/360', sort: 1 },
+    { id: '205888002', title: '婴儿游泳区', desc: '用于宝宝抚触、游泳与早教互动', image: 'https://picsum.photos/seed/fac_2/600/360', sort: 2 }
+  ] as AnyObj[]
 }
 
 function now() {
@@ -199,18 +246,26 @@ export function setupMock() {
 
     // Auth
     if (path === '/admin/auth/login' && method === 'POST') {
-      const username = body.username || 'admin'
+      const username = String(body.username || '').trim()
+      const password = String(body.password || '')
+      const isAdminCred = username === 'admin' && password === 'admin123'
+      const isStaffCred = username === 'staff' && password === 'staff123'
+      if (!isAdminCred && !isStaffCred) {
+        return createResponse(config, null, 4000, '用户名或密码错误')
+      }
+      const isAdmin = username === 'admin'
       return createResponse(config, {
         token: `demo_token_${Date.now()}`,
         user: {
           ...mockAdminUser,
           username,
-          name: username === 'admin' ? '管理员' : username,
+          name: isAdmin ? '管理员' : `${username}（员工）`,
+          role: isAdmin ? 'admin' : 'staff',
+          permissions: isAdmin ? ['*'] : ['employee.portal'],
           lastLoginAt: now()
         }
       })
     }
-
     if (path === '/admin/auth/me' && method === 'GET') {
       return createResponse(config, mockAdminUser)
     }
@@ -219,7 +274,126 @@ export function setupMock() {
       return createResponse(config, null)
     }
 
-    // Dashboard
+    if (path === '/files/upload' && method === 'POST') {
+      const bizType = body.bizType || 'unknown'
+      return createResponse(config, {
+        fileId: nextId('file'),
+        url: `https://picsum.photos/seed/${bizType}_${Date.now()}/800/450`,
+        objectKey: `mock/${bizType}/${Date.now()}.jpg`,
+        mimeType: 'image/jpeg',
+        sizeBytes: 204800,
+        bizType,
+        uploadedAt: now()
+      })
+    }
+    if (path === '/admin/tag-pending' && method === 'GET') {
+      const page = toNumber(query.page, 1)
+      const pageSize = toNumber(query.pageSize, 20)
+      const status = String(query.status || 'PENDING').trim()
+      const keyword = String(query.keyword || '').trim()
+      let filtered = state.tagPending.filter((item) => !status || item.status === status)
+      if (keyword) filtered = filtered.filter((item) => String(item.tagName).includes(keyword) || String(item.tagCode).includes(keyword))
+      const mapped = filtered.map((item) => ({ ...item, topCandidate: item.candidates?.[0] || null }))
+      return createResponse(config, paginate(mapped, page, pageSize))
+    }
+    if (path.match(/^\/admin\/tag-pending\/[^/]+$/) && method === 'GET') {
+      const pendingId = findByPathId(path)
+      return createResponse(config, state.tagPending.find((x) => x.pendingId === pendingId) || state.tagPending[0])
+    }
+    if (path.match(/^\/admin\/tag-pending\/[^/]+\/mentions$/) && method === 'GET') {
+      const page = toNumber(query.page, 1)
+      const pageSize = toNumber(query.pageSize, 20)
+      const list = Array.from({ length: 8 }, (_, idx) => ({
+        uid: `20435072062342881${idx}`,
+        userName: null,
+        articleId: null,
+        sourceType: idx % 2 ? 'AI_CHAT' : 'PAGE_VIEW',
+        sourceContext: '示例上下文',
+        sourceEventId: `17770${idx}`,
+        sourceEventType: idx % 2 ? 'AI_CHAT' : 'PAGE_VIEW',
+        chatSessionId: idx % 2 ? `chat_${idx}` : null,
+        chatMessageId: idx % 2 ? `${Date.now()}${idx}` : null,
+        chatMessageSeqNo: idx + 1,
+        analysisRecordId: `${Date.now()}${idx}`,
+        createdAt: now()
+      }))
+      return createResponse(config, paginate(list, page, pageSize))
+    }
+    if (path.match(/^\/admin\/tag-pending\/[^/]+\/review$/) && method === 'POST') {
+      const pendingId = path.split('/')[3]
+      const action = body.action
+      const item = state.tagPending.find((x) => x.pendingId === pendingId)
+      if (!item || !['APPROVE', 'REJECT', 'MERGE'].includes(action)) return createResponse(config, null, 4000, 'invalid request')
+      if (action === 'MERGE' && !body.targetTagCode) return createResponse(config, null, 4000, 'targetTagCode required')
+      item.reviewAction = action
+      item.status = action === 'APPROVE' ? 'APPROVED' : action === 'REJECT' ? 'REJECTED' : 'MERGED'
+      item.reviewedAt = now()
+      item.reviewedBy = 'admin_001'
+      item.mergedToTagCode = action === 'MERGE' ? body.targetTagCode : null
+      return createResponse(config, {
+        pendingId,
+        finalStatus: item.status,
+        resolvedTagCode: item.mergedToTagCode || item.tagCode,
+        backfilledUserCount: 3,
+        removedPendingUserTagCount: 3
+      })
+    }
+    if (path === '/admin/scoring-weights' && method === 'GET') {
+      return createResponse(config, state.scoringWeights)
+    }
+    if (path === '/admin/scoring-weights' && method === 'PUT') {
+      const conversionIntent = Number(body.conversionIntent)
+      const spendingPower = Number(body.spendingPower)
+      const recentActivity = Number(body.recentActivity)
+      const total = conversionIntent + spendingPower + recentActivity
+      if ([conversionIntent, spendingPower, recentActivity].some((v) => !Number.isInteger(v) || v < 0 || v > 100) || total !== 100) {
+        return createResponse(config, null, 4000, 'weights invalid')
+      }
+      state.scoringWeights = { conversionIntent, spendingPower, recentActivity, total, updatedAt: now(), updatedBy: 'admin_001' }
+      return createResponse(config, state.scoringWeights)
+    }
+    if (path === '/admin/decay-config' && method === 'GET') {
+      return createResponse(config, state.decayConfig)
+    }
+    if (path.match(/^\/admin\/decay-config\/[^/]+$/) && method === 'PUT') {
+      const eventType = findByPathId(path)
+      const target = state.decayConfig.find((x) => x.eventType === eventType)
+      if (!target) return createResponse(config, null, 4000, 'eventType not found')
+      ;['initialWeight', 'lambda', 'minWeight'].forEach((key) => {
+        if (body[key] !== undefined) target[key] = Number(body[key])
+      })
+      return createResponse(config, target)
+    }
+    if (path === '/admin/dashboard/traffic-sources' && method === 'GET') {
+      const days = Math.max(1, Math.min(90, toNumber(query.days, 7)))
+      const total = state.trafficSources.reduce((acc, item) => acc + Number(item.count), 0)
+      const sources = state.trafficSources.map((item) => ({ ...item, ratio: total ? item.count / total : 0 }))
+      return createResponse(config, { days, total, sources })
+    }
+    if (path === '/admin/centers/facilities' && method === 'GET') {
+      return createResponse(config, [...state.centerFacilities].sort((a, b) => a.sort - b.sort))
+    }
+    if (path === '/admin/centers/facilities' && method === 'POST') {
+      if (!String(body.title || '').trim()) return createResponse(config, null, 4000, 'title required')
+      const item = { id: nextId('facility'), ...body }
+      state.centerFacilities.push(item)
+      return createResponse(config, item)
+    }
+    if (path.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'PUT') {
+      const id = findByPathId(path)
+      const idx = state.centerFacilities.findIndex((x) => x.id === id)
+      if (idx < 0) return createResponse(config, null, 4004, 'facility not found')
+      if (body.title !== undefined && !String(body.title).trim()) return createResponse(config, null, 4000, 'title required')
+      state.centerFacilities[idx] = { ...state.centerFacilities[idx], ...body }
+      return createResponse(config, state.centerFacilities[idx])
+    }
+    if (path.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'DELETE') {
+      const id = findByPathId(path)
+      const idx = state.centerFacilities.findIndex((x) => x.id === id)
+      if (idx < 0) return createResponse(config, null, 4004, 'facility not found')
+      state.centerFacilities.splice(idx, 1)
+      return createResponse(config, null)
+    }    // Dashboard
     if (path === '/admin/dashboard/overview' && method === 'GET') {
       return createResponse(config, {
         ...mockDashboardOverview,
@@ -680,3 +854,4 @@ export function setupMock() {
     return Promise.reject(new Error(`No mock adapter for ${rawUrl}`))
   }
 }
+

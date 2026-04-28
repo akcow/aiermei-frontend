@@ -2,16 +2,8 @@
 
 本仓库包含两套前端：
 
-- **小程序端（uni-app）**：`/pages`、`/api`、`/store` 等目录
-- **管理后台（Vue3 + Vite + Element Plus）**：`/admin`
-
-适用角色：
-
-- 前端同学：快速上手开发与排查
-- 后端同学：明确联调入口、接口约定、常见故障定位
-- 测试/产品/新同学：快速运行本地演示（Mock）
-
----
+- 小程序端（uni-app）：`/pages`、`/api`、`/store` 等目录
+- 管理后台（Vue3 + Vite + Element Plus）：`/admin`
 
 ## 1. 目录结构
 
@@ -24,49 +16,48 @@
 │  │  ├─ mock/                    # 后台 Mock 适配器与数据
 │  │  ├─ stores/                  # Pinia 状态管理
 │  │  └─ router/                  # 后台路由
-│  ├─ vite.config.ts              # 后台开发代理与构建配置
+│  ├─ vite.config.ts              # 开发代理与构建配置
 │  └─ package.json
 ├─ api/                           # 小程序 API 封装
 ├─ pages/                         # 小程序页面
-├─ store/                         # 小程序状态管理
+├─ store/                         # 小程序状态
 ├─ mock/                          # 小程序 mock 数据/处理
-├─ docs/                          # 联调文档、接口映射与约定
-├─ backend.openapi(1).json        # 最新后端 OpenAPI（联调基准）
-└─ package.json                   # 小程序工程依赖
+├─ docs/                          # 联调文档、需求文档、接口说明
+├─ docs/backend.openapi(2).json   # 最新后端 OpenAPI（当前基准）
+└─ README.md
 ```
-
----
 
 ## 2. 环境要求
 
 - Node.js 18+
 - npm 9+
 - 小程序开发工具（微信开发者工具）
-- 建议：PowerShell / Windows Terminal
-
----
 
 ## 3. 快速启动
 
 ### 3.1 管理后台（admin）
-
-进入 `admin` 目录安装依赖：
 
 ```powershell
 cd admin
 npm install
 ```
 
-#### A. 真实后端联调模式（默认）
+#### A. 真实联调模式（默认）
 
 ```powershell
 npm run dev
 ```
 
 默认会将 `/api` 代理到 `http://localhost:8080`。
-如果后端不是这个地址，见下方 **4.2**。
 
-#### B. 本地全量 Mock 演示模式（推荐演示/走查 UI）
+可通过环境变量改后端地址：
+
+```powershell
+$env:VITE_API_TARGET='http://你的后端地址:端口'
+npm run dev
+```
+
+#### B. 本地 Mock 模式（演示/UI 走查）
 
 ```powershell
 $env:VITE_ENABLE_MOCK='true'
@@ -75,8 +66,8 @@ npm run dev
 
 说明：
 
-- 当前 mock 已覆盖后台主要页面接口（登录、仪表盘、客户、内容、订单、FAQ、热线、中心配置、反馈等）
-- 仅在 `VITE_ENABLE_MOCK=true` 时启用，不影响真实联调
+- 仅在 `VITE_ENABLE_MOCK=true` 时启用 mock adapter。
+- 当前管理员控制台相关接口已覆盖 mock（审批池、评分权重、衰减参数、流量来源、设施管理、上传）。
 
 #### C. 构建与预览
 
@@ -85,68 +76,73 @@ npm run build
 npm run preview
 ```
 
----
-
 ### 3.2 小程序端（uni-app）
 
-本仓库小程序端通常通过 `HBuilderX` 或微信开发者工具运行（非标准 Vite 单命令脚手架）。
+建议通过 HBuilderX/微信开发者工具运行：
 
-建议流程：
-
-1. 用 HBuilderX 打开仓库根目录
+1. 打开仓库根目录
 2. 运行到微信开发者工具
-3. 在小程序开发工具中预览/调试
+3. 在工具内预览与调试
 
-如需改联调配置，请查看：
+联调配置参考：`api/config.ts`、`docs/integration.md`
 
-- `api/config.ts`
+## 4. Admin 角色与功能说明
+
+### 4.1 单登录入口 + 双身份
+
+管理后台为单登录入口，登录后按身份自动分流：
+
+- 管理员：进入管理员控制台
+- 员工：进入员工后台
+
+并有路由权限隔离：
+
+- 管理员不可访问员工后台路由
+- 员工不可访问管理员控制台路由
+
+### 4.2 管理员控制台菜单
+
+当前管理员侧边栏包含：
+
+1. 仪表盘（融合流量来源统计）
+2. 标签审批池
+3. 评分权重
+4. 行为热度衰减设置
+5. 设施字典管理
+
+### 4.3 评分权重页交互
+
+- 页面大卡片居中展示（向下偏移，方便视觉聚焦）。
+- 三个参数都支持：拖动条 + 数值输入。
+- 当前为手动模式（无自动平衡），保存前校验总和必须为 100。
+
+### 4.4 行为热度衰减设置说明
+
+- 页面已使用通俗字段：初始热度、降温速度、最低保留值。
+- 行为类型来自后端查询接口 `GET /api/v1/admin/decay-config`。
+- 当前接口只支持更新已有类型：`PUT /api/v1/admin/decay-config/{eventType}`。
+- 按当前接口契约，不支持前端新建/删除行为类型。
+
+## 5. Mock 模式测试账号
+
+仅在 `VITE_ENABLE_MOCK=true` 下可用：
+
+- 管理员：`admin / admin123`
+- 员工：`staff / staff123`
+
+登录页在 Mock 模式会自动显示该提示。
+
+## 6. 接口文档与约定
+
+联调请以以下文档为准：
+
+- `docs/backend.openapi(2).json`
+- `docs/frontend-admin-approval-scoring-api.md`
+- `docs/frontend-response-spec.md`
 - `docs/integration.md`
+- `docs/prd.md`
 
----
-
-## 4. 联调配置
-
-### 4.1 Admin 接口基准
-
-后台前端请求基准：
-
-- `baseURL = /api/v1`（见 `admin/src/api/request.ts`）
-
-所以实际请求会是：
-
-- `/api/v1/admin/...`
-
-### 4.2 修改 Admin 代理目标（真实后端地址）
-
-已支持通过环境变量设置代理目标（见 `admin/vite.config.ts`）：
-
-```powershell
-cd admin
-$env:VITE_API_TARGET='http://你的后端地址:端口'
-npm run dev
-```
-
-例如：
-
-```powershell
-$env:VITE_API_TARGET='http://192.168.1.20:8080'
-npm run dev
-```
-
----
-
-## 5. 接口文档与约定
-
-联调时请以以下文档为准：
-
-- 最新 OpenAPI：`backend.openapi(1).json`
-- 历史/补充文档：
-  - `docs/openapi.yaml`
-  - `docs/integration.md`
-  - `docs/api-mapping.md`
-  - `docs/frontend-response-spec.md`
-
-统一响应结构（约定）：
+统一响应结构：
 
 ```json
 {
@@ -158,90 +154,39 @@ npm run dev
 }
 ```
 
----
+## 7. 常见问题
 
-## 6. Mock 与真实模式切换说明（Admin）
+### 7.1 `http proxy error ECONNREFUSED`
 
-- `VITE_ENABLE_MOCK=true`：启用 mock adapter，优先返回本地 mock 数据
-- 不设置该变量：走真实网络请求 + Vite 代理
+原因：后端服务不可达（未启动或地址端口不对）。
 
-建议：
+排查：
 
-- 联调前后切换模式时，重启 dev server
-- 清理登录态避免 token 干扰：
+1. 确认后端已启动
+2. 确认 `VITE_API_TARGET` 或默认 `localhost:8080` 正确
+3. 重启 `npm run dev`
+
+### 7.2 Mock 模式仍走网络
+
+排查：
+
+1. 确认已设置 `VITE_ENABLE_MOCK=true`
+2. 重启 dev server
+3. 检查控制台是否有 Mock Adapter 日志
+
+### 7.3 登录状态异常
+
+可清理本地后台登录态后重试：
 
 ```js
 localStorage.removeItem('aiermei_admin_token')
 localStorage.removeItem('aiermei_admin_user')
 ```
 
----
+## 8. 维护建议
 
-## 7. 常见问题排查
-
-### 7.1 `http proxy error ECONNREFUSED`
-
-原因：代理目标不可达（后端没启动或地址端口不对）。
-
-排查：
-
-1. 确认后端服务已启动
-2. 确认 `VITE_API_TARGET` 或默认 `localhost:8080` 是否正确
-3. 重新 `npm run dev`
-
-### 7.2 打开页面报 `500`
-
-优先判断模式是否正确：
-
-- 如果本地演示：是否已设置 `VITE_ENABLE_MOCK=true`
-- 如果真实联调：查看 Network 的请求 URL、Authorization、返回 body
-
-### 7.3 Mock 模式仍访问网络
-
-说明某些请求未被 mock 命中或模式未正确开启。
-
-- 检查启动命令是否包含 `VITE_ENABLE_MOCK=true`
-- 检查控制台是否有 `Mock Adapter` 日志
-
----
-
-## 8. 开发规范建议
-
-- 新增接口时同时更新：
-  - `api/modules/*.ts`（调用）
-  - `types/*.ts`（类型）
-  - `docs/*`（必要说明）
-- 管理后台页面优先通过 API 模块调用，避免页面内散落裸请求
-- 调整返回字段时，优先核对 `backend.openapi(1).json`
-
----
-
-## 9. 给不同角色的最短路径
-
-### 前端同学
-
-- 看页面效果：`cd admin && $env:VITE_ENABLE_MOCK='true' && npm run dev`
-- 联调真实后端：`cd admin && $env:VITE_API_TARGET='http://后端地址:端口' && npm run dev`
-
-### 后端同学
-
-- 先看 `backend.openapi(1).json` 与 `docs/integration.md`
-- 若前端报错，优先让前端提供：请求 URL、请求头、响应体、requestId
-
-### 测试/产品同学
-
-- 推荐用 Mock 模式走查主流程与页面交互
-- 若验证真实数据，再切换真实联调模式
-
----
-
-## 10. 维护人提示
-
-如你刚接手本仓库，建议第一天完成：
-
-1. 本地跑通 admin 的 mock 模式
-2. 本地跑通 admin 的真实联调模式（可连测试后端）
-3. 过一遍 `docs/` 目录和 `backend.openapi(1).json`
-4. 记录当前后端可用地址、账号、联调约束
-
-这样后续问题定位会快很多。
+- 新增/变更接口时，同步更新：
+  - `admin/src/api/modules/*`
+  - `admin/src/types/index.ts`
+  - 对应页面与 `docs/*` 文档
+- 接口字段以 `docs/backend.openapi(2).json` 为基准。

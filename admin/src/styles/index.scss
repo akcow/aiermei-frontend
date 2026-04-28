@@ -55,8 +55,18 @@ html, body {
   border-right: none !important;
 }
 
-.el-menu-item.is-active {
-  background-color: rgba(17, 24, 39, 0.08) !important;
+.console-page {
+  .page-header {
+    margin-bottom: 14px;
+  }
+
+  .console-panel {
+    padding: 18px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    border: 1px solid #e8ebf0;
+    box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+  }
 }
 
 // 卡片样式

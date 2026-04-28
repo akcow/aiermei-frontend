@@ -80,8 +80,8 @@
         </picker>
       </view>
 
-      <button class="submit-btn" :disabled="saving" @click="handleSave">
-        {{ saving ? '保存中...' : '保存修改' }}
+      <button class="submit-btn" :disabled="saving || uploadingAvatar" @click="handleSave">
+        {{ uploadingAvatar ? '头像上传中，请稍候' : (saving ? '保存中...' : '保存修改') }}
       </button>
     </view>
   </view>
@@ -91,9 +91,10 @@
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getLocalProfile, setLocalProfile } from '@/store/session';
-import { updateCurrentUser } from '@/api/modules/member';
+import { updateCurrentUser, uploadUserAvatar } from '@/api/modules/member';
 
 const saving = ref(false);
+const uploadingAvatar = ref(false);
 
 const form = reactive({
   name: '',
@@ -119,13 +120,30 @@ function onDateChange(e: any) {
 }
 
 function chooseAvatar() {
+  if (uploadingAvatar.value || saving.value) return;
   uni.chooseImage({
     count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success: (res) => {
+    success: async (res) => {
       if (res.tempFilePaths && res.tempFilePaths.length > 0) {
-        form.avatar = res.tempFilePaths[0] as string;
+        const localPath = res.tempFilePaths[0] as string;
+        uploadingAvatar.value = true;
+        uni.showLoading({ title: '头像上传中...' });
+        try {
+          const uploadRes = await uploadUserAvatar(localPath);
+          if (uploadRes.code === 0 && uploadRes.data?.url) {
+            form.avatar = uploadRes.data.url;
+            uni.showToast({ title: '头像上传成功', icon: 'success' });
+          } else {
+            uni.showToast({ title: uploadRes.message || '头像上传失败', icon: 'none' });
+          }
+        } catch (e) {
+          uni.showToast({ title: '头像上传失败', icon: 'none' });
+        } finally {
+          uploadingAvatar.value = false;
+          uni.hideLoading();
+        }
       }
     }
   });
