@@ -153,7 +153,9 @@ const state = {
   centerFacilities: [
     { id: '205888001', title: '瑜伽康复室', desc: '用于产后拉伸与体态修复课程', image: 'https://picsum.photos/seed/fac_1/600/360', sort: 1 },
     { id: '205888002', title: '婴儿游泳区', desc: '用于宝宝抚触、游泳与早教互动', image: 'https://picsum.photos/seed/fac_2/600/360', sort: 2 }
-  ] as AnyObj[]
+  ] as AnyObj[],
+  customerTagCorrections: [] as AnyObj[],
+  customerManualScores: {} as Record<string, AnyObj>
 }
 
 function now() {
@@ -413,7 +415,179 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path.startsWith('/admin/customers/') && method === 'GET') {
+    if (path.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'GET') {
+      const uid = path.split('/')[3]
+      const customer = state.customers.find((x) => x.uid === uid)
+      const tags = Array.isArray(customer?.tags) ? customer.tags : []
+      const normalized = tags.map((tag: AnyObj, idx: number) => {
+        if (typeof tag === 'string') {
+          return {
+            tagCode: `legacy_${idx}_${tag}`,
+            tagName: tag,
+            source: 'AI',
+            confidence: 0.72,
+            createdAt: now(),
+            evidenceCount: 1
+          }
+        }
+        return {
+          tagCode: tag.tagCode || tag.code || `tag_${idx}`,
+          tagName: tag.tagName || tag.name || `标签${idx + 1}`,
+          source: tag.source || 'AI',
+          confidence: tag.confidence ?? 0.72,
+          createdAt: tag.createdAt || now(),
+          evidenceCount: tag.evidenceCount ?? 1
+        }
+      })
+      return createResponse(config, normalized)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'POST') {
+      const uid = path.split('/')[3]
+      const customer = state.customers.find((x) => x.uid === uid)
+      if (!customer) return createResponse(config, null, 4004, 'customer not found')
+      const tagName = String(body.tagName || '').trim()
+      if (!tagName) return createResponse(config, null, 4000, 'tagName required')
+      const tagCode = `manual_${Date.now()}`
+      const tagObj = { tagCode, tagName, source: 'MANUAL', confidence: 1 }
+      customer.tags = customer.tags || []
+      customer.tags.push(tagObj)
+      state.customerTagCorrections.unshift({
+        id: nextId('corr'),
+        uid,
+        action: 'ADD',
+        tagCode,
+        tagName,
+        reason: String(body.reason || ''),
+        source: 'MANUAL',
+        operator: 'staff_001',
+        operatedAt: now()
+      })
+      return createResponse(config, tagObj)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+\/trace$/) && method === 'GET') {
+      const seg = path.split('/').filter(Boolean)
+      const uid = seg[2]
+      const tagCode = decodeURIComponent(seg[4])
+      const customer = state.customers.find((x) => x.uid === uid)
+      const tagName = (() => {
+        const tags: AnyObj[] = Array.isArray(customer?.tags) ? customer.tags : []
+        const hit = tags.find((tag, i) => {
+          if (typeof tag === 'string') return `legacy_${i}_${tag}` === tagCode
+          return (tag.tagCode || tag.code) === tagCode
+        })
+        if (!hit) return tagCode
+        return typeof hit === 'string' ? hit : (hit.tagName || hit.name || tagCode)
+      })()
+      const base = Date.now()
+      const traces = [
+        {
+          id: nextId('trace'),
+          uid,
+          tagCode,
+          tagName,
+          sourceType: 'AI_CHAT',
+          sourceEventType: 'AI_CHAT',
+          sourceEventId: `chat_${uid}_1`,
+          sourceContext: `AI对话记录提到「${tagName}」相关诉求，客服追问了预算与到店时间。`,
+          occurredAt: new Date(base - 1000 * 60 * 60 * 24).toISOString()
+        },
+        {
+          id: nextId('trace'),
+          uid,
+          tagCode,
+          tagName,
+          sourceType: 'PAGE_VIEW',
+          sourceEventType: 'PAGE_VIEW',
+          sourceEventId: `pv_${uid}_2`,
+          sourceContext: `浏览了与「${tagName}」强相关的服务详情页并停留较久。`,
+          occurredAt: new Date(base - 1000 * 60 * 60 * 12).toISOString()
+        }
+      ]
+      return createResponse(config, traces)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+$/) && method === 'DELETE') {
+      const seg = path.split('/').filter(Boolean)
+      const uid = seg[2]
+      const tagCode = decodeURIComponent(seg[4])
+      const reason = String(query.reason || '')
+      const customer = state.customers.find((x) => x.uid === uid)
+      if (!customer) return createResponse(config, null, 4004, 'customer not found')
+      const currentTags: AnyObj[] = Array.isArray(customer.tags) ? customer.tags : []
+      const idx = currentTags.findIndex((tag, i) => {
+        if (typeof tag === 'string') return `legacy_${i}_${tag}` === tagCode
+        return (tag.tagCode || tag.code) === tagCode
+      })
+      if (idx < 0) return createResponse(config, null, 4004, 'tag not found')
+      const found = currentTags[idx]
+      const tagName = typeof found === 'string' ? found : (found.tagName || found.name || tagCode)
+      currentTags.splice(idx, 1)
+      state.customerTagCorrections.unshift({
+        id: nextId('corr'),
+        uid,
+        action: 'REMOVE',
+        tagCode,
+        tagName,
+        reason,
+        source: 'MANUAL',
+        operator: 'staff_001',
+        operatedAt: now()
+      })
+      customer.tags = currentTags
+      return createResponse(config, null)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/manual-score$/) && method === 'GET') {
+      const uid = path.split('/')[3]
+      const draft = state.customerManualScores[uid] || {
+        dimensions: [
+          { key: 'conversionIntent', label: '转化意向度', score: 60 },
+          { key: 'spendingPower', label: '消费能力', score: 55 },
+          { key: 'urgency', label: '孕产急迫度', score: 68 }
+        ],
+        overallScore: 61,
+        note: '',
+        updatedBy: 'staff_001',
+        updatedAt: now()
+      }
+      return createResponse(config, draft)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/manual-score:confirm$/) && method === 'POST') {
+      const uid = path.split('/')[3]
+      const dimensions = Array.isArray(body.dimensions) ? body.dimensions : []
+      if (dimensions.length === 0) return createResponse(config, null, 4000, 'dimensions required')
+      const overallScore = Math.round(
+        dimensions.reduce((sum: number, item: AnyObj) => sum + Number(item.score || 0), 0) / dimensions.length
+      )
+      const saved = {
+        id: nextId('mscore'),
+        uid,
+        dimensions,
+        overallScore,
+        note: body.note || '',
+        confirmedBy: 'staff_001',
+        confirmedAt: now()
+      }
+      state.customerManualScores[uid] = {
+        dimensions,
+        overallScore,
+        note: body.note || '',
+        updatedBy: 'staff_001',
+        updatedAt: now()
+      }
+      return createResponse(config, saved)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+\/tag-corrections$/) && method === 'GET') {
+      const uid = path.split('/')[3]
+      const list = state.customerTagCorrections.filter((x) => x.uid === uid)
+      return createResponse(config, list)
+    }
+
+    if (path.match(/^\/admin\/customers\/[^/]+$/) && method === 'GET') {
       const uid = findByPathId(path)
       const item = state.customers.find((u) => u.uid === uid)
       return createResponse(config, item || state.customers[0])

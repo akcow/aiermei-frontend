@@ -182,6 +182,68 @@ export interface TagItem {
   confidence?: number;
 }
 
+export interface CustomerTag {
+  tagCode: string;
+  tagName: string;
+  source?: string;
+  confidence?: number;
+  createdAt?: string;
+  evidenceCount?: number;
+}
+
+export interface CustomerScoreDimension {
+  key: 'conversionIntent' | 'spendingPower' | 'urgency';
+  label: string;
+  score: number;
+}
+
+export interface CustomerManualScoreDraft {
+  dimensions: CustomerScoreDimension[];
+  overallScore: number;
+  note?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerManualScoreSubmitRequest {
+  dimensions: CustomerScoreDimension[];
+  note?: string;
+}
+
+export interface CustomerManualScoreSubmitResponse {
+  id: string;
+  uid: string;
+  dimensions: CustomerScoreDimension[];
+  overallScore: number;
+  note?: string;
+  confirmedBy: string;
+  confirmedAt: string;
+}
+
+export interface CustomerTagCorrectionLog {
+  id: string;
+  uid: string;
+  action: 'ADD' | 'REMOVE';
+  tagCode: string;
+  tagName: string;
+  reason?: string;
+  source: 'MANUAL';
+  operator: string;
+  operatedAt: string;
+}
+
+export interface CustomerTagTraceRecord {
+  id: string;
+  uid: string;
+  tagCode: string;
+  tagName: string;
+  sourceType: 'AI_CHAT' | 'PAGE_VIEW' | 'ARTICLE_VIEW' | 'MANUAL';
+  sourceEventType?: string;
+  sourceEventId?: string;
+  sourceContext: string;
+  occurredAt: string;
+}
+
 export interface ArticleTag {
   articleId: string;
   tagCode: string;
