@@ -319,6 +319,54 @@ export const mockComplaints: Complaint[] = [
   }
 ]
 
+// ============ 账号管理 ============
+
+export const mockAdmins: any[] = [
+  {
+    id: 'admin_001',
+    username: 'admin',
+    name: '超级管理员',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+    role: 'admin',
+    status: 'ENABLED',
+    onlineStatus: 'ONLINE',
+    permissions: ['*'],
+    createdAt: '2026-01-01T10:00:00+08:00',
+    updatedAt: '2026-01-01T10:00:00+08:00',
+    lastLoginAt: '2026-04-16T10:00:00+08:00',
+    lastLoginIp: '127.0.0.1'
+  },
+  {
+    id: 'admin_002',
+    username: 'zhang_manager',
+    name: '张经理',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhang',
+    role: 'admin',
+    status: 'ENABLED',
+    onlineStatus: 'OFFLINE',
+    permissions: ['dashboard.view', 'content.manage'],
+    createdAt: '2026-02-15T14:30:00+08:00',
+    updatedAt: '2026-02-15T14:30:00+08:00',
+    lastLoginAt: '2026-04-15T16:20:00+08:00',
+    lastLoginIp: '192.168.1.102'
+  }
+]
+
+export const mockStaffs: any[] = Array.from({ length: 15 }, (_, i) => ({
+  id: `staff_${String(i + 1).padStart(3, '0')}`,
+  username: `staff_${i + 1}`,
+  name: `员工客服${i + 1}`,
+  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=staff${i}`,
+  role: 'staff',
+  status: i % 5 === 0 ? 'DISABLED' : 'ENABLED',
+  onlineStatus: i % 3 === 0 ? 'ONLINE' : 'OFFLINE',
+  permissions: ['employee.portal'],
+  createdAt: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString(),
+  updatedAt: new Date(Date.now() - (20 - i) * 24 * 60 * 60 * 1000).toISOString(),
+  lastLoginAt: new Date(Date.now() - Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString(),
+  lastLoginIp: `192.168.2.${100 + i}`
+}))
+
 export default {
   mockLogin,
   mockAdminUser,
@@ -333,5 +381,7 @@ export default {
   mockOrders,
   mockCoupons,
   mockEvaluations,
-  mockComplaints
+  mockComplaints,
+  mockAdmins,
+  mockStaffs
 }

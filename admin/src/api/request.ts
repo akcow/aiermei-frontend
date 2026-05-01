@@ -65,7 +65,7 @@ export async function request<T>(config: AxiosRequestConfig): Promise<ApiRespons
   return instance.request(config)
 }
 
-export function get<T>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+export function get<T>(url: string, params?: any): Promise<ApiResponse<T>> {
   return request<T>({ method: 'GET', url, params })
 }
 

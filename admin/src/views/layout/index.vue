@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '240px'" class="layout-aside" :class="{ collapsed: isCollapse }">
       <div class="logo">
@@ -45,6 +45,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                <el-dropdown-item v-if="userStore.isAdmin" command="accounts">账号管理</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -139,7 +140,11 @@ const adminMenus: MenuNode[] = [
 const visibleMenus = computed(() => (userStore.isAdmin ? adminMenus : employeeMenus))
 
 function handleCommand(command: string) {
-  if (command === 'logout') {
+  if (command === 'profile') {
+    router.push({ name: 'Profile' })
+  } else if (command === 'accounts') {
+    router.push({ name: 'AccountManagement' })
+  } else if (command === 'logout') {
     ElMessageBox.confirm('确认退出登录吗？', '提示', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',

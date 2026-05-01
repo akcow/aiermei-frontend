@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const employeeChildren: RouteRecordRaw[] = [
@@ -122,6 +122,12 @@ const adminChildren: RouteRecordRaw[] = [
     name: 'CenterFacilities',
     component: () => import('@/views/console/center-facilities.vue'),
     meta: { title: '设施字典管理', icon: 'OfficeBuilding', roles: ['admin'] }
+  },
+  {
+    path: 'console/accounts',
+    name: 'AccountManagement',
+    component: () => import('@/views/console/accounts/index.vue'),
+    meta: { title: '账号管理', icon: 'UserFilled', roles: ['admin'] }
   }
 ]
 
@@ -136,7 +142,16 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('@/views/layout/index.vue'),
     meta: { requiresAuth: true },
-    children: [...employeeChildren, ...adminChildren]
+    children: [
+      ...employeeChildren,
+      ...adminChildren,
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人设置', roles: ['admin', 'editor', 'viewer', 'staff'] }
+      }
+    ]
   }
 ]
 
@@ -175,7 +190,7 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  if (userStore.isAdmin && !isAdminPath(to.path)) {
+  if (userStore.isAdmin && !isAdminPath(to.path) && to.path !== '/profile') {
     next({ name: 'AdminDashboard' })
     return
   }

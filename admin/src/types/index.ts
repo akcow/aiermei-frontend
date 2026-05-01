@@ -401,3 +401,14 @@ export interface LoginResponse {
   principalType: 'ADMIN' | 'STAFF';
   user: AdminUser;
 }
+
+export interface UpdateProfileRequest {
+  name: string;
+  avatar: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}

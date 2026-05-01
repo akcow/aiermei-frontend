@@ -1,4 +1,4 @@
-import { get, post } from '../request'
+import { get, post, put } from '../request'
 import type {
   AdminUser,
   AnalysisResult,
@@ -7,19 +7,29 @@ import type {
   LoginRequest,
   LoginResponse,
   PageResponse,
-  UserJourney
+  UserJourney,
+  UpdateProfileRequest,
+  ChangePasswordRequest
 } from '@/types'
 
 export function login(data: LoginRequest, type: 'admin' | 'staff' = 'admin') {
   return post<LoginResponse>(`/${type}/auth/login`, data)
 }
 
-export function getCurrentAdmin() {
-  return get<AdminUser>('/admin/auth/me')
+export function getCurrentProfile(type: 'admin' | 'staff' = 'admin') {
+  return get<AdminUser>(`/${type}/auth/me`)
 }
 
-export function logout() {
-  return post<void>('/admin/auth/logout')
+export function logout(type: 'admin' | 'staff' = 'admin') {
+  return post<void>(`/${type}/auth/logout`)
+}
+
+export function updateProfile(data: UpdateProfileRequest, type: 'admin' | 'staff' = 'admin') {
+  return put<AdminUser>(`/${type}/auth/me`, data)
+}
+
+export function changePassword(data: ChangePasswordRequest, type: 'admin' | 'staff' = 'admin') {
+  return put<void>(`/${type}/auth/password`, data)
 }
 
 export function getDashboardOverview() {

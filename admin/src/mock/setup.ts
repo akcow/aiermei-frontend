@@ -12,7 +12,9 @@ import {
   mockMagazines,
   mockOrders,
   mockSuites,
-  mockUserJourney
+  mockUserJourney,
+  mockStaffs,
+  mockAdmins
 } from './data'
 
 type AnyObj = Record<string, any>
@@ -35,6 +37,8 @@ const state = {
   evaluations: [...mockEvaluations] as AnyObj[],
   complaints: [...mockComplaints] as AnyObj[],
   customers: [...mockCustomers] as AnyObj[],
+  admins: [...mockAdmins] as AnyObj[],
+  staffs: [...mockStaffs] as AnyObj[],
   contentCategories: [
     { id: 'pregnancy', label: '孕期', sort: 1 },
     { id: 'postpartum', label: '产后', sort: 2 },
@@ -276,8 +280,16 @@ export function setupMock() {
         }
       })
     }
-    if (path === '/admin/auth/me' && method === 'GET') {
+    if ((path === '/admin/auth/me' || path === '/staff/auth/me') && method === 'GET') {
       return createResponse(config, mockAdminUser)
+    }
+
+    if ((path === '/admin/auth/me' || path === '/staff/auth/me') && method === 'PUT') {
+      return createResponse(config, { ...mockAdminUser, ...body })
+    }
+
+    if ((path === '/admin/auth/password' || path === '/staff/auth/password') && method === 'PUT') {
+      return createResponse(config, null)
     }
 
     if (path === '/admin/auth/logout' && method === 'POST') {
@@ -615,6 +627,124 @@ export function setupMock() {
         anxieties: [{ code: 'milk_supply', name: '泌乳不足', confidence: 0.79 }],
         behaviors: [{ code: 'content_reader', name: '内容深读', confidence: 0.74 }]
       })
+    }
+
+    // Account Management - Staff
+    if (path === '/admin/accounts/staff' && method === 'GET') {
+      const page = toNumber(query.page, 1)
+      const pageSize = toNumber(query.pageSize, 10)
+      const keyword = (query.keyword || '').toLowerCase().trim()
+      const status = query.status
+      let list = [...state.staffs]
+      if (status) list = list.filter(x => x.status === status)
+      if (keyword) {
+        list = list.filter(x => 
+          x.username.toLowerCase().includes(keyword) || 
+          x.name.toLowerCase().includes(keyword)
+        )
+      }
+      return createResponse(config, paginate(list, page, pageSize))
+    }
+
+    if (path === '/admin/accounts/staff' && method === 'POST') {
+      const item = {
+        id: nextId('staff'),
+        onlineStatus: 'OFFLINE',
+        permissions: ['employee.portal'],
+        status: 'ENABLED',
+        createdAt: now(),
+        updatedAt: now(),
+        ...body
+      }
+      state.staffs.unshift(item)
+      return createResponse(config, item)
+    }
+
+    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'GET') {
+      const id = findByPathId(path)
+      const item = state.staffs.find(x => x.id === id)
+      return createResponse(config, item || state.staffs[0])
+    }
+
+    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'PUT') {
+      const id = findByPathId(path)
+      const item = upsertById(state.staffs, id, body)
+      return createResponse(config, item || true)
+    }
+
+    if (path.match(/^\/admin\/accounts\/staff\/[^/]+\/status$/) && method === 'PUT') {
+      const id = path.split('/')[4]
+      const item = upsertById(state.staffs, id, { status: body.status })
+      return createResponse(config, item || true)
+    }
+
+    if (path.match(/^\/admin\/accounts\/staff\/[^/]+\/password:reset$/) && method === 'PUT') {
+      return createResponse(config, { updatedAt: now() })
+    }
+
+    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'DELETE') {
+      const id = findByPathId(path)
+      removeById(state.staffs, id)
+      return createResponse(config, null)
+    }
+
+    // Account Management - Admin
+    if (path === '/admin/accounts/admins' && method === 'GET') {
+      const page = toNumber(query.page, 1)
+      const pageSize = toNumber(query.pageSize, 10)
+      const keyword = (query.keyword || '').toLowerCase().trim()
+      const status = query.status
+      let list = [...state.admins]
+      if (status) list = list.filter(x => x.status === status)
+      if (keyword) {
+        list = list.filter(x => 
+          x.username.toLowerCase().includes(keyword) || 
+          x.name.toLowerCase().includes(keyword)
+        )
+      }
+      return createResponse(config, paginate(list, page, pageSize))
+    }
+
+    if (path === '/admin/accounts/admins' && method === 'POST') {
+      const item = {
+        id: nextId('admin'),
+        onlineStatus: 'OFFLINE',
+        permissions: [],
+        status: 'ENABLED',
+        createdAt: now(),
+        updatedAt: now(),
+        ...body
+      }
+      state.admins.unshift(item)
+      return createResponse(config, item)
+    }
+
+    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'GET') {
+      const id = findByPathId(path)
+      const item = state.admins.find(x => x.id === id)
+      return createResponse(config, item || state.admins[0])
+    }
+
+    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'PUT') {
+      const id = findByPathId(path)
+      const item = upsertById(state.admins, id, body)
+      return createResponse(config, item || true)
+    }
+
+    if (path.match(/^\/admin\/accounts\/admins\/[^/]+\/status$/) && method === 'PUT') {
+      const id = path.split('/')[4]
+      const item = upsertById(state.admins, id, { status: body.status })
+      return createResponse(config, item || true)
+    }
+
+    if (path.match(/^\/admin\/accounts\/admins\/[^/]+\/password:reset$/) && method === 'PUT') {
+      return createResponse(config, { updatedAt: now() })
+    }
+
+    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'DELETE') {
+      const id = findByPathId(path)
+      removeById(state.admins, id)
+      return createResponse(config, null)
     }
 
     // Orders
