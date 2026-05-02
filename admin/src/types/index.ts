@@ -196,6 +196,7 @@ export interface CustomerTag {
   tagName: string;
   source?: string;
   confidence?: number;
+  decayPercent?: number;
   createdAt?: string;
   evidenceCount?: number;
 }

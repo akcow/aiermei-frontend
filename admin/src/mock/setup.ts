@@ -458,12 +458,14 @@ export function setupMock() {
       const customer = state.customers.find((x) => x.uid === uid)
       const tags = Array.isArray(customer?.tags) ? customer.tags : []
       const normalized = tags.map((tag: AnyObj, idx: number) => {
+        const decay = Number((80 + Math.random() * 15).toFixed(1))
         if (typeof tag === 'string') {
           return {
             tagCode: `legacy_${idx}_${tag}`,
             tagName: tag,
             source: 'AI',
             confidence: 0.72,
+            decayPercent: decay,
             createdAt: now(),
             evidenceCount: 1
           }
@@ -473,6 +475,7 @@ export function setupMock() {
           tagName: tag.tagName || tag.name || `标签${idx + 1}`,
           source: tag.source || 'AI',
           confidence: tag.confidence ?? 0.72,
+          decayPercent: tag.decayPercent ?? decay,
           createdAt: tag.createdAt || now(),
           evidenceCount: tag.evidenceCount ?? 1
         }
@@ -487,7 +490,7 @@ export function setupMock() {
       const tagName = String(body.tagName || '').trim()
       if (!tagName) return createResponse(config, null, 4000, 'tagName required')
       const tagCode = `manual_${Date.now()}`
-      const tagObj = { tagCode, tagName, source: 'MANUAL', confidence: 1 }
+      const tagObj = { tagCode, tagName, source: 'MANUAL', confidence: 1, decayPercent: 100.0 }
       customer.tags = customer.tags || []
       customer.tags.push(tagObj)
       state.customerTagCorrections.unshift({
@@ -631,7 +634,7 @@ export function setupMock() {
       return createResponse(config, item || state.customers[0])
     }
 
-    if (path.startsWith('/analytics/users/') && path.endsWith('/journey') && method === 'GET') {
+    if ((path.startsWith('/analytics/users/') || normalizedPath.match(/^\/admin\/customers\/[^/]+\/journey$/)) && method === 'GET') {
       const seg = path.split('/').filter(Boolean)
       const uid = seg[2] || state.customers[0]?.uid
       return createResponse(config, mockUserJourney(uid))

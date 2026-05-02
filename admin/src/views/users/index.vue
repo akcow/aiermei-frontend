@@ -23,7 +23,12 @@
             <div class="identity">
               <el-avatar :size="48" :src="user.avatar">{{ user.name?.charAt(0) }}</el-avatar>
               <div class="meta">
-                <h3>{{ user.name }}</h3>
+                <div class="name-row">
+                  <h3>{{ user.name }}</h3>
+                  <el-icon class="journey-icon" title="查看行为路径与日志" @click.stop="openProfileDialog(user, 'logs')">
+                    <Compass />
+                  </el-icon>
+                </div>
                 <p class="phone-meta">
                   <span class="phone-text">{{ user.phone || '-' }}</span>
                   <el-icon v-if="user.phone && user.phone !== '-'" class="reveal-icon" @click.stop="togglePhone(user)">
@@ -42,8 +47,8 @@
           </div>
 
           <p class="quote">{{ insightPreview(user) }}</p>
-
-          <div class="metric-row">
+          
+          <div class="metric-row" title="点击查看详细行为路径" @click="openProfileDialog(user, 'logs')">
             <div class="metric-item">
               <label>意向</label>
               <b class="c-intent">{{ metricPreview(user, 'conversionIntent') }}%</b>
@@ -113,8 +118,8 @@
           <p>{{ analysisResult.script || '暂无AI摘要' }}</p>
         </section>
 
-        <el-tabs class="detail-tabs">
-          <el-tab-pane label="人工评分面板">
+        <el-tabs v-model="activeTab" class="detail-tabs">
+          <el-tab-pane label="人工评分面板" name="scoring">
             <section class="panel">
               <h3>多维度意向分校准</h3>
               <div v-for="dim in scoreDimensions" :key="dim.key" class="score-block">
@@ -153,11 +158,15 @@
                   v-for="tag in customerTags"
                   :key="tag.tagCode"
                   class="trace-tag"
+                  size="large"
                   closable
                   @click.stop="openTagTrace(tag)"
                   @close="removeTag(tag)"
                 >
-                  {{ tag.tagName }}
+                  <span class="tag-name">{{ tag.tagName }}</span>
+                  <span v-if="tag.decayPercent !== undefined" class="tag-decay">
+                    {{ tag.decayPercent }}%
+                  </span>
                 </el-tag>
                 <span v-if="!customerTags.length" class="subtle">暂无标签</span>
               </div>
@@ -222,7 +231,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import { View, Hide } from '@element-plus/icons-vue'
+import { View, Hide, Compass } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { analyzeUser as analyzeUserApi, getCustomerDetail, getCustomers, getUserJourney } from '@/api/modules/auth'
 import {
@@ -257,6 +266,7 @@ const tagTraceVisible = ref(false)
 const tagTraceLoading = ref(false)
 const activeTraceTagName = ref('')
 const tagTraceRecords = ref<CustomerTagTraceRecord[]>([])
+const activeTab = ref('scoring')
 
 const searchForm = reactive({ keyword: '' })
 const pagination = reactive({ page: 1, pageSize: 12, total: 0 })
@@ -373,34 +383,40 @@ async function loadUsers() {
 }
 
 async function loadProfileData(uid: string) {
-  const [detailRes, journeyRes, analysisRes, tagsRes, scoreDraftRes, logsRes] = await Promise.all([
-    getCustomerDetail(uid),
-    getUserJourney(uid, 100),
-    analyzeUserApi(uid, false),
-    getCustomerTags(uid),
-    getCustomerManualScoreDraft(uid),
-    getCustomerTagCorrectionLogs(uid)
-  ])
+  try {
+    const [detailRes, journeyRes, analysisRes, tagsRes, scoreDraftRes, logsRes] = await Promise.all([
+      getCustomerDetail(uid).catch(e => ({ data: selectedUser.value })),
+      getUserJourney(uid, 100).catch(e => ({ data: { paths: [] } })),
+      analyzeUserApi(uid, false).catch(e => ({ data: { script: '分析加载失败' } })),
+      getCustomerTags(uid).catch(e => ({ data: [] })),
+      getCustomerManualScoreDraft(uid).catch(e => ({ data: null })),
+      getCustomerTagCorrectionLogs(uid).catch(e => ({ data: [] }))
+    ])
 
-  selectedUser.value = detailRes.data
-  userJourney.value = journeyRes.data
-  analysisResult.value = analysisRes.data
-  customerTags.value = tagsRes.data
-  tagCorrectionLogs.value = logsRes.data
-  manualScoreNote.value = scoreDraftRes.data.note || ''
+    if (detailRes.data) selectedUser.value = detailRes.data as Customer
+    userJourney.value = journeyRes.data as UserJourney
+    analysisResult.value = analysisRes.data as AnalysisResult
+    customerTags.value = tagsRes.data as CustomerTag[]
+    tagCorrectionLogs.value = logsRes.data as CustomerTagCorrectionLog[]
 
-  for (const dim of scoreDimensions) {
-    const found = scoreDraftRes.data.dimensions.find((item) => item.key === dim.key)
-    if (found) dim.score = found.score
+    if (scoreDraftRes.data) {
+      const draft = scoreDraftRes.data as any
+      scoreDimensions.forEach((dim) => {
+        const hit = draft.dimensions?.find((d: any) => d.key === dim.key)
+        if (hit) dim.score = hit.score
+      })
+      manualScoreNote.value = draft.note || ''
+    }
+    updateSnapshots()
+  } catch (e) {
+    console.error('Failed to load profile data:', e)
+    ElMessage.error('部分详情数据加载失败')
   }
-
-  initialScoreSnapshot.value = JSON.stringify(scoreDimensions.map((x) => ({ key: x.key, score: x.score })))
-  initialNoteSnapshot.value = manualScoreNote.value
 }
 
-
-async function openProfileDialog(user: Customer) {
+async function openProfileDialog(user: Customer, tab: string = 'scoring') {
   selectedUser.value = user
+  activeTab.value = tab
   // Reset score dimensions to defaults
   scoreDimensions[0].score = 60
   scoreDimensions[1].score = 55
@@ -622,6 +638,24 @@ onMounted(() => {
   -webkit-box-orient: vertical;
 }
 
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journey-icon {
+  color: #14b8a6;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.journey-icon:hover {
+  transform: rotate(45deg) scale(1.2);
+  color: #0d9488;
+}
+
 .metric-row {
   margin-top: 12px;
   border-top: 1px solid #e7ebf2;
@@ -631,6 +665,12 @@ onMounted(() => {
   padding: 10px 8px;
   background: #f8f9fb;
   border-radius: 0 0 10px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #f1f5f9;
+  }
 }
 
 .metric-item {
@@ -802,6 +842,21 @@ onMounted(() => {
 
 .trace-tag {
   cursor: pointer;
+  font-size: 16px !important;
+  height: 36px !important;
+  padding: 0 16px !important;
+  display: inline-flex;
+  align-items: center;
+
+  .tag-decay {
+    margin-left: 8px;
+    font-size: 13px;
+    opacity: 0.7;
+    font-weight: normal;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0 4px;
+    border-radius: 4px;
+  }
 }
 
 .trace-head {
