@@ -19,54 +19,80 @@
     </div>
 
     <div class="card console-panel panel">
-      <el-table :data="tags" v-loading="loading" style="width: 100%">
-        <el-table-column prop="tagCode" label="标签编码" min-width="150" />
+      <el-table 
+        :data="tags" 
+        v-loading="loading" 
+        style="width: 100%"
+        header-cell-class-name="table-header-cell"
+        row-class-name="table-row"
+      >
+        <el-table-column prop="tagCode" label="标签编码" min-width="160">
+          <template #default="{ row }">
+            <code class="tag-code">{{ row.tagCode }}</code>
+          </template>
+        </el-table-column>
         <el-table-column prop="tagName" label="标签名称" min-width="150">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.tagName }}</el-tag>
+            <span class="tag-name-text">{{ row.tagName }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="useCount" label="使用次数" width="100" align="center" sortable />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">
-              {{ row.status === 'ACTIVE' ? '启用' : '禁用' }}
-            </el-tag>
+            <span class="description-text">{{ row.description || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="useCount" label="使用次数" width="160" align="center" sortable>
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-statistic :value="row.useCount" :value-style="{ fontSize: '14px', fontWeight: '600' }" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="150">
+          <template #default="{ row }">
+            <div class="status-indicator" :class="row.status === 'ACTIVE' ? 'active' : 'inactive'">
+              <span class="dot"></span>
+              <span class="text">{{ row.status === 'ACTIVE' ? '已启用' : '已禁用' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)" class="edit-btn">编辑</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
 
     <!-- 编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" title="编辑标签" width="500px">
-      <el-form :model="form" label-width="80px">
+    <el-dialog v-model="dialogVisible" title="编辑标签" width="520px" destroy-on-close class="custom-dialog">
+      <el-form :model="form" label-width="80px" label-position="left">
         <el-form-item label="标签编码">
-          <el-input v-model="form.tagCode" disabled />
+          <el-input v-model="form.tagCode" disabled class="disabled-input" />
         </el-form-item>
         <el-form-item label="标签名称">
-          <el-input v-model="form.tagName" disabled />
+          <el-input v-model="form.tagName" disabled class="disabled-input" />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入标签描述" />
+          <el-input 
+            v-model="form.description" 
+            type="textarea" 
+            :rows="4" 
+            placeholder="请输入标签的详细业务描述..." 
+            maxlength="200"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio label="ACTIVE">启用</el-radio>
-            <el-radio label="INACTIVE">禁用</el-radio>
-          </el-radio-group>
+          <el-segmented 
+            v-model="form.status" 
+            :options="[{ label: '启用', value: 'ACTIVE' }, { label: '禁用', value: 'INACTIVE' }]" 
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSubmit">确认</el-button>
-        </span>
+        <div class="dialog-footer">
+          <el-button @click="dialogVisible = false" round>取消</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSubmit" round class="submit-btn">提交更新</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -99,7 +125,6 @@ async function fetchTags() {
   loading.value = true
   try {
     const res = await getTagDictionary(queryParams)
-    // 根据 OpenAPI，接口直接返回数组
     tags.value = Array.isArray(res.data) ? res.data : []
   } catch (error) {
     console.error('Failed to fetch tags:', error)
@@ -128,7 +153,7 @@ async function handleSubmit() {
       description: form.description,
       status: form.status
     })
-    ElMessage.success('更新成功')
+    ElMessage.success('标签更新成功')
     dialogVisible.value = false
     fetchTags()
   } catch (error) {
@@ -158,6 +183,106 @@ onMounted(() => {
 }
 
 .panel {
-  padding: 16px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 表格样式美化 */
+:deep(.table-header-cell) {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  height: 50px;
+}
+
+:deep(.table-row) {
+  height: 60px;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f3f4f6 !important;
+  }
+}
+
+.tag-code {
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+  background-color: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.tag-name-text {
+  font-weight: 500;
+  color: #111827;
+}
+
+.description-text {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  
+  .text {
+    font-size: 13px;
+  }
+  
+  &.active {
+    .dot { background-color: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+    .text { color: #059669; }
+  }
+  
+  &.inactive {
+    .dot { background-color: #9ca3af; }
+    .text { color: #6b7280; }
+  }
+}
+
+.edit-btn {
+  font-weight: 500;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* 弹窗与表单样式 */
+.disabled-input {
+  :deep(.el-input__inner) {
+    background-color: #f9fafb;
+    color: #9ca3af;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+}
+
+.submit-btn {
+  padding-left: 24px;
+  padding-right: 24px;
+  background-color: #111827;
+  border-color: #111827;
+  
+  &:hover {
+    background-color: #1f2937;
+    border-color: #1f2937;
+  }
 }
 </style>
