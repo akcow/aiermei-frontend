@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { get, post, put } from '../request'
 import type { Order, PageResponse } from '@/types'
 
@@ -10,32 +11,32 @@ export function getOrders(params: {
   startDate?: string;
   endDate?: string;
 }) {
-  return get<PageResponse<Order>>('/admin/orders', params)
+  return get<PageResponse<Order>>(`${useUserStore().apiPrefix}/orders`, params)
 }
 
 // 获取订单详情
 export function getOrderDetail(id: string) {
-  return get<Order>(`/admin/orders/${id}`)
+  return get<Order>(`${useUserStore().apiPrefix}/orders/${id}`)
 }
 
 // 确认订单
 export function confirmOrder(id: string) {
-  return post<Order>(`/admin/orders/${id}/confirm`)
+  return post<Order>(`${useUserStore().apiPrefix}/orders/${id}/confirm`)
 }
 
 // 取消订单
 export function cancelOrder(id: string, reason: string) {
-  return post<Order>(`/admin/orders/${id}/cancel`, { reason })
+  return post<Order>(`${useUserStore().apiPrefix}/orders/${id}/cancel`, { reason })
 }
 
 // 退款
 export function refundOrder(id: string, reason: string) {
-  return post<Order>(`/admin/orders/${id}/refund`, { reason })
+  return post<Order>(`${useUserStore().apiPrefix}/orders/${id}/refund`, { reason })
 }
 
 // 更新订单备注
 export function updateOrderRemark(id: string, remark: string) {
-  return put<Order>(`/admin/orders/${id}/remark`, { remark })
+  return put<Order>(`${useUserStore().apiPrefix}/orders/${id}/remark`, { remark })
 }
 
 // 获取订单统计
@@ -48,5 +49,5 @@ export function getOrderStats() {
     cancelled: number;
     totalRevenue: number;
     totalRevenueLabel: string;
-  }>('/admin/orders/stats')
+  }>(`${useUserStore().apiPrefix}/orders/stats`)
 }

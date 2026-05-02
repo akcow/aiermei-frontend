@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { get, post, put, del } from '../request'
 import type { PageResponse } from '@/types'
 
@@ -23,39 +24,39 @@ export interface FaqItem {
 // ============ 分类管理 ============
 
 export function getFaqCategories() {
-  return get<FaqCategory[]>('/admin/faq/categories')
+  return get<FaqCategory[]>(`${useUserStore().apiPrefix}/faq/categories`)
 }
 
 export function createFaqCategory(data: { name: string; sort: number }) {
-  return post<FaqCategory>('/admin/faq/categories', data)
+  return post<FaqCategory>(`${useUserStore().apiPrefix}/faq/categories`, data)
 }
 
 export function updateFaqCategory(id: string, data: { name: string; sort: number }) {
-  return put<FaqCategory>(`/admin/faq/categories/${id}`, data)
+  return put<FaqCategory>(`${useUserStore().apiPrefix}/faq/categories/${id}`, data)
 }
 
 export function deleteFaqCategory(id: string) {
-  return del<void>(`/admin/faq/categories/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/faq/categories/${id}`)
 }
 
 // ============ 条目管理 ============
 
 export function getFaqItems(params: { page: number; pageSize: number; categoryId?: string }) {
-  return get<PageResponse<FaqItem>>('/admin/faq/items', params)
+  return get<PageResponse<FaqItem>>(`${useUserStore().apiPrefix}/faq/items`, params)
 }
 
 export function getFaqItemDetail(id: string) {
-  return get<FaqItem>(`/admin/faq/items/${id}`)
+  return get<FaqItem>(`${useUserStore().apiPrefix}/faq/items/${id}`)
 }
 
 export function createFaqItem(data: Partial<FaqItem>) {
-  return post<FaqItem>('/admin/faq/items', data)
+  return post<FaqItem>(`${useUserStore().apiPrefix}/faq/items`, data)
 }
 
 export function updateFaqItem(id: string, data: Partial<FaqItem>) {
-  return put<FaqItem>(`/admin/faq/items/${id}`, data)
+  return put<FaqItem>(`${useUserStore().apiPrefix}/faq/items/${id}`, data)
 }
 
 export function deleteFaqItem(id: string) {
-  return del<void>(`/admin/faq/items/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/faq/items/${id}`)
 }

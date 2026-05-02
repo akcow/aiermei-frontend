@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 ﻿import { del, get, post, put, request } from '../request'
 import type {
   CenterFacility,
@@ -14,55 +15,55 @@ import type {
 } from '@/types'
 
 export function getTagPendingList(params: { status?: string; keyword?: string; page: number; pageSize: number }) {
-  return get<PageResponse<TagPendingItem>>('/admin/tag-pending', params)
+  return get<PageResponse<TagPendingItem>>(`${useUserStore().apiPrefix}/tag-pending`, params)
 }
 
 export function getTagPendingDetail(pendingId: string) {
-  return get<TagPendingDetail>(`/admin/tag-pending/${pendingId}`)
+  return get<TagPendingDetail>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}`)
 }
 
 export function getTagMentions(pendingId: string, params: { page: number; pageSize: number }) {
-  return get<PageResponse<TagMention>>(`/admin/tag-pending/${pendingId}/mentions`, params)
+  return get<PageResponse<TagMention>>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}/mentions`, params)
 }
 
 export function reviewTagPending(pendingId: string, data: TagReviewRequest) {
-  return post<TagReviewResult>(`/admin/tag-pending/${pendingId}/review`, data)
+  return post<TagReviewResult>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}/review`, data)
 }
 
 export function getScoringWeights() {
-  return get<ScoringWeights>('/admin/scoring-weights')
+  return get<ScoringWeights>(`${useUserStore().apiPrefix}/scoring-weights`)
 }
 
 export function updateScoringWeights(data: Pick<ScoringWeights, 'conversionIntent' | 'spendingPower' | 'recentActivity'>) {
-  return put<ScoringWeights>('/admin/scoring-weights', data)
+  return put<ScoringWeights>(`${useUserStore().apiPrefix}/scoring-weights`, data)
 }
 
 export function getDecayConfigList() {
-  return get<DecayConfigItem[]>('/admin/decay-config')
+  return get<DecayConfigItem[]>(`${useUserStore().apiPrefix}/decay-config`)
 }
 
 export function updateDecayConfig(eventType: string, data: Partial<Pick<DecayConfigItem, 'initialWeight' | 'lambda' | 'minWeight'>>) {
-  return put<DecayConfigItem>(`/admin/decay-config/${eventType}`, data)
+  return put<DecayConfigItem>(`${useUserStore().apiPrefix}/decay-config/${eventType}`, data)
 }
 
 export function getTrafficSources(days: number) {
-  return get<TrafficSourcesStat>('/admin/dashboard/traffic-sources', { days })
+  return get<TrafficSourcesStat>(`${useUserStore().apiPrefix}/dashboard/traffic-sources`, { days })
 }
 
 export function getCenterFacilities() {
-  return get<CenterFacility[]>('/admin/centers/facilities')
+  return get<CenterFacility[]>(`${useUserStore().apiPrefix}/centers/facilities`)
 }
 
 export function createCenterFacility(data: Omit<CenterFacility, 'id'>) {
-  return post<CenterFacility>('/admin/centers/facilities', data)
+  return post<CenterFacility>(`${useUserStore().apiPrefix}/centers/facilities`, data)
 }
 
 export function updateCenterFacility(id: string, data: Partial<Omit<CenterFacility, 'id'>>) {
-  return put<CenterFacility>(`/admin/centers/facilities/${id}`, data)
+  return put<CenterFacility>(`${useUserStore().apiPrefix}/centers/facilities/${id}`, data)
 }
 
 export function deleteCenterFacility(id: string) {
-  return del<void>(`/admin/centers/facilities/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/centers/facilities/${id}`)
 }
 
 export function uploadFile(file: File, bizType: string) {

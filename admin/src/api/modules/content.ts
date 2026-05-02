@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { get, post, put, del } from '../request'
 import type { Article, ArticleTag, ContentCategory, PageResponse } from '@/types'
 
@@ -9,71 +10,71 @@ export function getArticles(params: {
   status?: string;
   keyword?: string;
 }) {
-  return get<PageResponse<Article>>('/admin/content/articles', params)
+  return get<PageResponse<Article>>(`${useUserStore().apiPrefix}/content/articles`, params)
 }
 
 // 获取文章详情
 export function getArticleDetail(id: string) {
-  return get<Article>(`/admin/content/articles/${id}`)
+  return get<Article>(`${useUserStore().apiPrefix}/content/articles/${id}`)
 }
 
 // 创建文章
 export function createArticle(data: Partial<Article>) {
-  return post<Article>('/admin/content/articles', data)
+  return post<Article>(`${useUserStore().apiPrefix}/content/articles`, data)
 }
 
 // 更新文章
 export function updateArticle(id: string, data: Partial<Article>) {
-  return put<Article>(`/admin/content/articles/${id}`, data)
+  return put<Article>(`${useUserStore().apiPrefix}/content/articles/${id}`, data)
 }
 
 // 删除文章
 export function deleteArticle(id: string) {
-  return del<void>(`/admin/content/articles/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/content/articles/${id}`)
 }
 
 // 发布文章
 export function publishArticle(id: string) {
-  return post<Article>(`/admin/content/articles/${id}/publish`)
+  return post<Article>(`${useUserStore().apiPrefix}/content/articles/${id}/publish`)
 }
 
 // 归档文章
 export function archiveArticle(id: string) {
-  return post<Article>(`/admin/content/articles/${id}/archive`)
+  return post<Article>(`${useUserStore().apiPrefix}/content/articles/${id}/archive`)
 }
 
 // 获取分类列表
 export function getCategories() {
-  return get<ContentCategory[]>('/admin/content/categories')
+  return get<ContentCategory[]>(`${useUserStore().apiPrefix}/content/categories`)
 }
 
 // 创建分类
 export function createCategory(data: { label: string; sort: number }) {
-  return post<ContentCategory>('/admin/content/categories', data)
+  return post<ContentCategory>(`${useUserStore().apiPrefix}/content/categories`, data)
 }
 
 // 更新分类
 export function updateCategory(id: string, data: { label: string; sort: number }) {
-  return put<ContentCategory>(`/admin/content/categories/${id}`, data)
+  return put<ContentCategory>(`${useUserStore().apiPrefix}/content/categories/${id}`, data)
 }
 
 // 删除分类
 export function deleteCategory(id: string) {
-  return del<void>(`/admin/content/categories/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/content/categories/${id}`)
 }
 
 export function extractArticleTags(articleId: string) {
-  return post<ArticleTag[]>(`/admin/articles/${articleId}/extract-tags`)
+  return post<ArticleTag[]>(`${useUserStore().apiPrefix}/articles/${articleId}/extract-tags`)
 }
 
 export function getArticleTags(articleId: string) {
-  return get<ArticleTag[]>(`/admin/articles/${articleId}/tags`)
+  return get<ArticleTag[]>(`${useUserStore().apiPrefix}/articles/${articleId}/tags`)
 }
 
 export function addArticleTag(articleId: string, data: { tagCode: string; tagName: string; tagType?: string }) {
-  return post<ArticleTag>(`/admin/articles/${articleId}/tags`, data)
+  return post<ArticleTag>(`${useUserStore().apiPrefix}/articles/${articleId}/tags`, data)
 }
 
 export function deleteArticleTag(articleId: string, tagCode: string) {
-  return del<void>(`/admin/articles/${articleId}/tags/${tagCode}`)
+  return del<void>(`${useUserStore().apiPrefix}/articles/${articleId}/tags/${tagCode}`)
 }

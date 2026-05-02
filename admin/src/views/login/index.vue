@@ -89,7 +89,7 @@ async function handleLogin() {
       password: form.password
     }, loginType.value)
 
-    userStore.login(res.data.token, res.data.user)
+    userStore.login(res.data.token, res.data.user, res.data.principalType)
     ElMessage.success('登录成功')
 
     const redirect = route.query.redirect as string | undefined

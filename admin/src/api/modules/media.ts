@@ -1,62 +1,63 @@
+import { useUserStore } from '@/stores/user'
 ﻿import { del, get, post, put } from '../request'
 import type { Banner, Magazine, Suite } from '@/types'
 
 export function getBanners() {
-  return get<Banner[]>('/admin/content/banners')
+  return get<Banner[]>(`${useUserStore().apiPrefix}/content/banners`)
 }
 
 export function getBannerDetail(id: string) {
-  return get<Banner>(`/admin/content/banners/${id}`)
+  return get<Banner>(`${useUserStore().apiPrefix}/content/banners/${id}`)
 }
 
 export function createBanner(data: Partial<Banner>) {
-  return post<Banner>('/admin/content/banners', data)
+  return post<Banner>(`${useUserStore().apiPrefix}/content/banners`, data)
 }
 
 export function updateBanner(id: string, data: Partial<Banner>) {
-  return put<Banner>(`/admin/content/banners/${id}`, data)
+  return put<Banner>(`${useUserStore().apiPrefix}/content/banners/${id}`, data)
 }
 
 export function deleteBanner(id: string) {
-  return del<void>(`/admin/content/banners/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/content/banners/${id}`)
 }
 
 export function getMagazines() {
-  return get<Magazine[]>('/admin/content/magazines')
+  return get<Magazine[]>(`${useUserStore().apiPrefix}/content/magazines`)
 }
 
 export function getMagazineDetail(id: string) {
-  return get<Magazine>(`/admin/content/magazines/${id}`)
+  return get<Magazine>(`${useUserStore().apiPrefix}/content/magazines/${id}`)
 }
 
 export function createMagazine(data: Partial<Magazine>) {
-  return post<Magazine>('/admin/content/magazines', data)
+  return post<Magazine>(`${useUserStore().apiPrefix}/content/magazines`, data)
 }
 
 export function updateMagazine(id: string, data: Partial<Magazine>) {
-  return put<Magazine>(`/admin/content/magazines/${id}`, data)
+  return put<Magazine>(`${useUserStore().apiPrefix}/content/magazines/${id}`, data)
 }
 
 export function deleteMagazine(id: string) {
-  return del<void>(`/admin/content/magazines/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/content/magazines/${id}`)
 }
 
 export function getSuites() {
-  return get<Suite[]>('/admin/content/suites')
+  return get<Suite[]>(`${useUserStore().apiPrefix}/content/suites`)
 }
 
 export function getSuiteDetail(id: string) {
-  return get<Suite>(`/admin/content/suites/${id}`)
+  return get<Suite>(`${useUserStore().apiPrefix}/content/suites/${id}`)
 }
 
 export function createSuite(data: Partial<Suite>) {
-  return post<Suite>('/admin/content/suites', data)
+  return post<Suite>(`${useUserStore().apiPrefix}/content/suites`, data)
 }
 
 export function updateSuite(id: string, data: Partial<Suite>) {
-  return put<Suite>(`/admin/content/suites/${id}`, data)
+  return put<Suite>(`${useUserStore().apiPrefix}/content/suites/${id}`, data)
 }
 
 export function deleteSuite(id: string) {
-  return del<void>(`/admin/content/suites/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/content/suites/${id}`)
 }

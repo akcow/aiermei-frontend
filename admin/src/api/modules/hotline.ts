@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 ﻿import { del, get, post, put } from '../request'
 
 export interface Hotline {
@@ -15,17 +16,17 @@ export interface HotlineConfig {
 }
 
 export function getHotlineConfig() {
-  return get<HotlineConfig>('/admin/service/hotlines')
+  return get<HotlineConfig>(`${useUserStore().apiPrefix}/service/hotlines`)
 }
 
 export function updateHotlineConfig(data: Partial<HotlineConfig>) {
-  return put<HotlineConfig>('/admin/service/hotlines', data)
+  return put<HotlineConfig>(`${useUserStore().apiPrefix}/service/hotlines`, data)
 }
 
 export function addHotline(data: { label: string; number: string }) {
-  return post<Hotline>('/admin/service/hotlines', data)
+  return post<Hotline>(`${useUserStore().apiPrefix}/service/hotlines`, data)
 }
 
 export function deleteHotline(id: string) {
-  return del<void>(`/admin/service/hotlines/${id}`)
+  return del<void>(`${useUserStore().apiPrefix}/service/hotlines/${id}`)
 }

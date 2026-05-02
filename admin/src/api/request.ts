@@ -31,6 +31,12 @@ instance.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const { data } = response
     
+    // 检查是否有弃用告警头
+    if (response.headers['x-api-deprecated'] === 'true') {
+      const replacement = response.headers['x-api-replacement']
+      console.warn(`[API 弃用警告] 当前接口已被标记为废弃，建议尽快迁移至：${replacement || '新接口'}`)
+    }
+    
     if (data.code === 0) {
       return data as unknown as AxiosResponse
     }

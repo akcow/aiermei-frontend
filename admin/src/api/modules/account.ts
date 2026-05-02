@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { get, post, put, del } from '../request'
 import type { PageResponse } from '@/types'
 
@@ -31,59 +32,59 @@ export interface AccountQueryParams {
 // --- 员工账号接口 ---
 
 export function getStaffAccounts(params: AccountQueryParams) {
-  return get<PageResponse<Account>>('/admin/accounts/staff', params)
+  return get<PageResponse<Account>>(`${useUserStore().apiPrefix}/accounts/staff`, params)
 }
 
 export function getStaffAccountDetail(staffId: string) {
-  return get<Account>(`/admin/accounts/staff/${staffId}`)
+  return get<Account>(`${useUserStore().apiPrefix}/accounts/staff/${staffId}`)
 }
 
 export function createStaffAccount(data: Partial<Account>) {
-  return post<Account>('/admin/accounts/staff', data)
+  return post<Account>(`${useUserStore().apiPrefix}/accounts/staff`, data)
 }
 
 export function updateStaffAccount(staffId: string, data: Partial<Account>) {
-  return put<Account>(`/admin/accounts/staff/${staffId}`, data)
+  return put<Account>(`${useUserStore().apiPrefix}/accounts/staff/${staffId}`, data)
 }
 
 export function updateStaffStatus(staffId: string, status: 'ENABLED' | 'DISABLED') {
-  return put<Account>(`/admin/accounts/staff/${staffId}/status`, { status })
+  return put<Account>(`${useUserStore().apiPrefix}/accounts/staff/${staffId}/status`, { status })
 }
 
 export function resetStaffPassword(staffId: string) {
-  return put<{ updatedAt: string }>(`/admin/accounts/staff/${staffId}/password:reset`)
+  return put<{ updatedAt: string }>(`${useUserStore().apiPrefix}/accounts/staff/${staffId}/password:reset`)
 }
 
 export function deleteStaffAccount(staffId: string) {
-  return del(`/admin/accounts/staff/${staffId}`)
+  return del(`${useUserStore().apiPrefix}/accounts/staff/${staffId}`)
 }
 
 // --- 管理员账号接口 ---
 
 export function getAdminAccounts(params: AccountQueryParams) {
-  return get<PageResponse<Account>>('/admin/accounts/admins', params)
+  return get<PageResponse<Account>>(`${useUserStore().apiPrefix}/accounts/admins`, params)
 }
 
 export function getAdminAccountDetail(adminId: string) {
-  return get<Account>(`/admin/accounts/admins/${adminId}`)
+  return get<Account>(`${useUserStore().apiPrefix}/accounts/admins/${adminId}`)
 }
 
 export function createAdminAccount(data: Partial<Account>) {
-  return post<Account>('/admin/accounts/admins', data)
+  return post<Account>(`${useUserStore().apiPrefix}/accounts/admins`, data)
 }
 
 export function updateAdminAccount(adminId: string, data: Partial<Account>) {
-  return put<Account>(`/admin/accounts/admins/${adminId}`, data)
+  return put<Account>(`${useUserStore().apiPrefix}/accounts/admins/${adminId}`, data)
 }
 
 export function updateAdminStatus(adminId: string, status: 'ENABLED' | 'DISABLED') {
-  return put<Account>(`/admin/accounts/admins/${adminId}/status`, { status })
+  return put<Account>(`${useUserStore().apiPrefix}/accounts/admins/${adminId}/status`, { status })
 }
 
 export function resetAdminPassword(adminId: string) {
-  return put<{ updatedAt: string }>(`/admin/accounts/admins/${adminId}/password:reset`)
+  return put<{ updatedAt: string }>(`${useUserStore().apiPrefix}/accounts/admins/${adminId}/password:reset`)
 }
 
 export function deleteAdminAccount(adminId: string) {
-  return del<void>(`/admin/accounts/admins/${adminId}`)
+  return del<void>(`${useUserStore().apiPrefix}/accounts/admins/${adminId}`)
 }

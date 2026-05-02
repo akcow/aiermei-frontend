@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { get, post, put } from '../request'
 import type {
   AdminUser,
@@ -33,25 +34,25 @@ export function changePassword(data: ChangePasswordRequest, type: 'admin' | 'sta
 }
 
 export function getDashboardOverview() {
-  return get<DashboardOverview>('/admin/dashboard/overview')
+  return get<DashboardOverview>(`${useUserStore().apiPrefix}/dashboard/overview`)
 }
 
 export function getCustomers(params: { page: number; pageSize: number; keyword?: string }) {
-  return get<PageResponse<Customer>>('/admin/customers', params)
+  return get<PageResponse<Customer>>(`${useUserStore().apiPrefix}/customers`, params)
 }
 
 export function getCustomerDetail(uid: string) {
-  return get<Customer>(`/admin/customers/${uid}`)
+  return get<Customer>(`${useUserStore().apiPrefix}/customers/${uid}`)
 }
 
 export function getUserJourney(uid: string, limit?: number) {
-  return get<UserJourney>(`/analytics/users/${uid}/journey`, {
+  return get<UserJourney>(`${useUserStore().apiPrefix}/customers/${uid}/journey`, {
     limit
   })
 }
 
 export function analyzeUser(uid: string, forceRefresh?: boolean) {
-  return post<AnalysisResult>(`/admin/users/${uid}/analysis`, {
+  return post<AnalysisResult>(`${useUserStore().apiPrefix}/users/${uid}/analysis`, {
     forceRefresh: Boolean(forceRefresh)
   })
 }
