@@ -457,12 +457,12 @@ async function loadUsers() {
 async function loadProfileData(uid: string) {
   try {
     const [detailRes, journeyRes, analysisRes, tagsRes, scoreDraftRes, logsRes] = await Promise.all([
-      getCustomerDetail(uid).catch(e => ({ data: selectedUser.value })),
-      getUserJourney(uid, 100).catch(e => ({ data: { paths: [] } })),
-      analyzeUserApi(uid, false).catch(e => ({ data: { script: '分析加载失败' } })),
-      getCustomerTags(uid).catch(e => ({ data: [] })),
-      getCustomerManualScoreDraft(uid).catch(e => ({ data: null })),
-      getCustomerTagCorrectionLogs(uid).catch(e => ({ data: [] }))
+      getCustomerDetail(uid).catch(() => ({ data: selectedUser.value })),
+      getUserJourney(uid, 100).catch(() => ({ data: { paths: [] } })),
+      analyzeUserApi(uid, false).catch(() => ({ data: { script: '分析加载失败' } })),
+      getCustomerTags(uid).catch(() => ({ data: [] })),
+      getCustomerManualScoreDraft(uid).catch(() => ({ data: null })),
+      getCustomerTagCorrectionLogs(uid).catch(() => ({ data: [] }))
     ])
 
     if (detailRes.data) selectedUser.value = detailRes.data as Customer
@@ -708,6 +708,7 @@ onMounted(() => {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 
