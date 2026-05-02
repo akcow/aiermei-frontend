@@ -48,7 +48,7 @@
           <swiper-item v-for="item in articles" :key="item.id">
             <view class="feature-card" @click="openMagazine(item.id)">
               <view class="feature-left">
-                <image :src="item.image" mode="aspectFill" class="feature-image" />
+                <image :src="item.cover" mode="aspectFill" class="feature-image" />
                 <view class="feature-cover">
                   <view class="feature-tag">Featured</view>
                   <view class="feature-title">{{ item.title }}</view>
@@ -101,6 +101,7 @@ import { memberArticles } from '@/mock/data';
 import { getLocalProfile, setLoginState, setLocalProfile, trackPath, getToken, clearSession } from '@/store/session';
 import { getCurrentUser, getMemberHome } from '@/api/modules/member';
 import { tracker } from '@/utils/tracker';
+import type { Magazine } from '@/types/domain';
 
 const profile = ref(getLocalProfile());
 const showAuth = ref(false);
@@ -130,7 +131,7 @@ const bottomMenus = [
   { id: 'faq', label: '常见问题', iconPath: '/static/icons/shield.svg' }
 ];
 
-const articles = ref([...memberArticles]);
+const articles = ref<Magazine[]>([...memberArticles]);
 const articleIndex = ref(0);
 
 function openSub(id: string) {
@@ -228,22 +229,30 @@ onShow(async () => {
 
   // 已登录，尝试从后端获取最新用户信息
   try {
-    const res = await getCurrentUser();
-    if (res.code === 0 && res.data) {
+    const [userRes, homeRes] = await Promise.all([
+      getCurrentUser(),
+      getMemberHome().catch(() => ({ data: { magazines: [] } }))
+    ]);
+    
+    if (userRes.code === 0 && userRes.data) {
       // 更新本地用户资料
       const updatedProfile = {
         ...profile.value,
-        ...res.data,
+        ...userRes.data,
         isLoggedIn: true,
-        lastActive: res.data.lastActive || Date.now()
+        lastActive: userRes.data.lastActive || Date.now()
       };
       setLocalProfile(updatedProfile);
       profile.value = updatedProfile;
     }
+
+    if (homeRes.data && homeRes.data.magazines) {
+      articles.value = homeRes.data.magazines;
+    }
   } catch (e) {
     // 4003 错误已在 httpRequest 中统一处理（清除登录态）
     // 其他错误保持本地缓存作为兜底
-    console.error('Failed to fetch user profile:', e);
+    console.error('Failed to fetch user profile or home data:', e);
   }
 });
 </script>

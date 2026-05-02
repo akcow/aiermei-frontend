@@ -1,4 +1,3 @@
-import { useUserStore } from '@/stores/user'
 import { del, get, post, put, request } from '../request'
 import type {
   AdminTagDictItem,
@@ -15,49 +14,49 @@ import type {
 } from '@/types'
 
 export function getTagPendingList(params: { status?: string; keyword?: string; page: number; pageSize: number }) {
-  return get<PageResponse<TagPendingItem>>(`${useUserStore().apiPrefix}/tag-pending`, params)
+  return get<PageResponse<TagPendingItem>>(`/admin/tag-pending`, params)
 }
 
 export function getTagPendingDetail(pendingId: string) {
-  return get<TagPendingDetail>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}`)
+  return get<TagPendingDetail>(`/admin/tag-pending/${pendingId}`)
 }
 
 export function getTagMentions(pendingId: string, params: { page: number; pageSize: number }) {
-  return get<PageResponse<TagMention>>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}/mentions`, params)
+  return get<PageResponse<TagMention>>(`/admin/tag-pending/${pendingId}/mentions`, params)
 }
 
 export function reviewTagPending(pendingId: string, data: TagReviewRequest) {
-  return post<TagReviewResult>(`${useUserStore().apiPrefix}/tag-pending/${pendingId}/review`, data)
+  return post<TagReviewResult>(`/admin/tag-pending/${pendingId}/review`, data)
 }
 
 export function getScoringWeights() {
-  return get<ScoringWeights>(`${useUserStore().apiPrefix}/scoring-weights`)
+  return get<ScoringWeights>(`/admin/scoring-weights`)
 }
 
 export function updateScoringWeights(data: Pick<ScoringWeights, 'conversionIntent' | 'spendingPower' | 'recentActivity'>) {
-  return put<ScoringWeights>(`${useUserStore().apiPrefix}/scoring-weights`, data)
+  return put<ScoringWeights>(`/admin/scoring-weights`, data)
 }
 
 export function getDecayConfigList() {
-  return get<DecayConfigItem[]>(`${useUserStore().apiPrefix}/decay-config`)
+  return get<DecayConfigItem[]>(`/admin/decay-config`)
 }
 
 export function updateDecayConfig(eventType: string, data: Partial<Pick<DecayConfigItem, 'initialWeight' | 'lambda' | 'minWeight'>>) {
-  return put<DecayConfigItem>(`${useUserStore().apiPrefix}/decay-config/${eventType}`, data)
+  return put<DecayConfigItem>(`/admin/decay-config/${eventType}`, data)
 }
 
 export function getTrafficSources(days: number) {
-  return get<TrafficSourcesStat>(`${useUserStore().apiPrefix}/dashboard/traffic-sources`, { days })
+  return get<TrafficSourcesStat>(`/admin/dashboard/traffic-sources`, { days })
 }
 
 // ============ 标签字典 ============
 
 export function getTagDictionary(params: { keyword?: string; status?: string }) {
-  return get<AdminTagDictItem[]>(`${useUserStore().apiPrefix}/tag-dictionary`, params)
+  return get<AdminTagDictItem[]>(`/admin/tag-dictionary`, params)
 }
 
 export function updateTagDictionary(tagCode: string, data: Partial<AdminTagDictItem>) {
-  return put<AdminTagDictItem>(`${useUserStore().apiPrefix}/tag-dictionary/${tagCode}`, data)
+  return put<AdminTagDictItem>(`/admin/tag-dictionary/${tagCode}`, data)
 }
 
 export function uploadFile(file: File, bizType: string) {

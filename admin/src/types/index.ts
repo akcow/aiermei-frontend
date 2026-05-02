@@ -160,6 +160,9 @@ export interface Customer {
   tags: Array<TagItem | string>;
   lastActive: string;
   createdAt: string;
+  profileSummary?: string;
+  manualTotalScore?: number;
+  manualScoreSnapshot?: Record<string, any>;
 }
 
 // 用户路径

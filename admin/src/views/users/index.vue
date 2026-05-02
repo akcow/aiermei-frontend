@@ -19,15 +19,19 @@
     <div class="card list-wrap" v-loading="loading">
       <div class="card-grid">
         <article v-for="user in users" :key="user.uid" class="lead-card">
+          <div 
+            v-if="user.manualTotalScore !== undefined" 
+            :class="['score-badge', { 'is-updating': updatingUids.has(user.uid) }]" 
+            title="后端综合评分"
+          >
+            {{ user.manualTotalScore }}%
+          </div>
           <div class="lead-header">
             <div class="identity">
               <el-avatar :size="48" :src="user.avatar">{{ user.name?.charAt(0) }}</el-avatar>
               <div class="meta">
                 <div class="name-row">
                   <h3>{{ user.name }}</h3>
-                  <el-icon class="journey-icon" title="查看行为路径与日志" @click.stop="openProfileDialog(user, 'logs')">
-                    <Compass />
-                  </el-icon>
                 </div>
                 <p class="phone-meta">
                   <span class="phone-text">{{ user.phone || '-' }}</span>
@@ -46,7 +50,7 @@
             </el-tag>
           </div>
 
-          <p class="quote">{{ insightPreview(user) }}</p>
+          <p :class="['quote', { 'is-updating': updatingUids.has(user.uid) }]">{{ insightPreview(user) }}</p>
           
           <div class="metric-row" title="点击查看详细行为路径" @click="openProfileDialog(user, 'logs')">
             <div class="metric-item">
@@ -61,6 +65,16 @@
               <label>急迫</label>
               <b class="c-urgency">{{ metricPreview(user, 'urgency') }}%</b>
             </div>
+          </div>
+
+          <div class="ai-analysis-wrap">
+            <el-button 
+              class="ai-btn" 
+              :loading="analyzingUid === user.uid"
+              @click.stop="handleAiAnalysis(user)"
+            >
+              <el-icon><Compass /></el-icon> AI 深度分析
+            </el-button>
           </div>
 
           <div class="footer-row">
@@ -108,13 +122,23 @@
               <p class="last-active">最后更新：{{ formatDate(selectedUser.lastActive) }}</p>
             </div>
           </div>
-          <el-button type="primary" plain :loading="submittingScore" @click="submitManualScore">确认提交评分</el-button>
+          <el-button 
+            type="primary" 
+            class="ai-action-btn" 
+            :loading="analyzingUid === selectedUser.uid" 
+            @click="handleAiAnalysis(selectedUser!)"
+          >
+            更新AI分析
+          </el-button>
         </div>
       </template>
 
       <template v-if="selectedUser">
-        <section class="ai-summary">
-          <div class="summary-title">AI洞察摘要</div>
+        <section :class="['ai-summary', { 'is-updating': updatingUids.has(selectedUser.uid) }]">
+          <div class="summary-title">
+            <el-icon class="ai-sparkle"><MagicStick /></el-icon>
+            AI洞察摘要
+          </div>
           <p>{{ analysisResult.script || '暂无AI摘要' }}</p>
         </section>
 
@@ -254,6 +278,8 @@ import type {
   UserJourney
 } from '@/types'
 
+import { MagicStick } from '@element-plus/icons-vue'
+
 const loading = ref(false)
 const users = ref<Customer[]>([])
 const profileDialogVisible = ref(false)
@@ -278,6 +304,46 @@ const scoreDimensions = reactive([
 ])
 const manualScoreNote = ref('')
 const submittingScore = ref(false)
+const analyzingUid = ref('')
+const updatingUids = ref(new Set<string>())
+
+async function handleAiAnalysis(user: Customer, force = true) {
+  analyzingUid.value = user.uid
+  updatingUids.value.add(user.uid)
+  
+  try {
+    const res = await analyzeUserApi(user.uid, force)
+    
+    // 模拟一段分析后的数据加载感，配合动画
+    await new Promise(resolve => setTimeout(resolve, 400))
+    
+    // 重新获取详情以同步最新的综合得分（manualTotalScore）和标签
+    const detailRes = await getCustomerDetail(user.uid)
+    const updatedUser = detailRes.data as Customer
+    
+    // 如果详情对话框已打开，且是同一个用户，更新详情页数据
+    if (profileDialogVisible.value && selectedUser.value?.uid === user.uid) {
+      analysisResult.value = res.data
+      selectedUser.value = updatedUser
+    }
+    
+    // 同步刷新列表中的该用户信息
+    const index = users.value.findIndex(u => u.uid === user.uid)
+    if (index > -1) {
+      users.value[index] = updatedUser
+    }
+    ElMessage.success('AI 分析完成，数据已更新')
+  } catch (e) {
+    console.error('AI Analysis failed:', e)
+    ElMessage.error('AI 分析执行失败')
+  } finally {
+    analyzingUid.value = ''
+    // 动画保持一段时间
+    setTimeout(() => {
+      updatingUids.value.delete(user.uid)
+    }, 1000)
+  }
+}
 
 const newTagName = ref('')
 const tagCorrectionReason = ref('')
@@ -323,6 +389,11 @@ function getTagKey(tag: Customer['tags'][number], index: number) {
 }
 
 function metricPreview(user: Customer, type: 'conversionIntent' | 'spendingPower' | 'urgency') {
+  if (user.manualScoreSnapshot) {
+    const hit = user.manualScoreSnapshot[type]
+    if (typeof hit === 'number') return hit
+    if (hit && typeof hit.score === 'number') return hit.score
+  }
   const seed = Number(user.uid.replace(/\D/g, '')) % 100
   if (type === 'conversionIntent') return Math.max(40, Math.min(95, 45 + (seed % 50)))
   if (type === 'spendingPower') return Math.max(45, Math.min(96, 50 + ((seed + 9) % 45)))
@@ -330,6 +401,7 @@ function metricPreview(user: Customer, type: 'conversionIntent' | 'spendingPower
 }
 
 function insightPreview(user: Customer) {
+  if (user.profileSummary) return user.profileSummary
   const tags = user.tags.slice(0, 3).map((x) => getTagName(x)).filter(Boolean)
   if (!tags.length) return '近期互动稳定，建议补充线下沟通记录完善画像。'
   return `重点关注：${tags.join('、')}。建议结合到店沟通进一步核验。`
@@ -581,6 +653,7 @@ onMounted(() => {
 }
 
 .lead-card {
+  position: relative;
   border-radius: 12px;
   border: 1px solid #e6e9ef;
   background: #f5f5f0;
@@ -636,6 +709,13 @@ onMounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.is-updating {
+    opacity: 0.3;
+    filter: blur(2px);
+    transform: translateY(-2px);
+  }
 }
 
 .name-row {
@@ -644,17 +724,6 @@ onMounted(() => {
   gap: 8px;
 }
 
-.journey-icon {
-  color: #14b8a6;
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.2s;
-}
-
-.journey-icon:hover {
-  transform: rotate(45deg) scale(1.2);
-  color: #0d9488;
-}
 
 .metric-row {
   margin-top: 12px;
@@ -722,6 +791,46 @@ onMounted(() => {
   background: rgba(17, 24, 39, 0.04) !important;
 }
 
+.ai-analysis-wrap {
+  padding: 0 12px 10px;
+}
+
+.ai-btn {
+  width: 100%;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #128053 0%, #10b981 100%);
+  border: none;
+  color: white;
+  height: 36px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #0f766e 0%, #128053 100%);
+  }
+
+  .el-icon {
+    font-size: 16px;
+  }
+}
+
+.ai-action-btn {
+  background: linear-gradient(135deg, #128053 0%, #10b981 100%);
+  border: none;
+  font-weight: 600;
+  
+  &:hover, &:focus {
+    background: linear-gradient(135deg, #0f766e 0%, #128053 100%);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  }
+}
+
 .dialog-head {
   display: flex;
   justify-content: space-between;
@@ -744,12 +853,45 @@ onMounted(() => {
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 10px;
+  transition: all 0.5s ease;
+  position: relative;
+  overflow: hidden;
+
+  &.is-updating {
+    background: #f0fdf4;
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+      animation: ai-shimmer 1.2s infinite;
+    }
+  }
+}
+
+@keyframes ai-shimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
 }
 
 .summary-title {
   font-weight: 700;
   color: #128053;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-sparkle {
+  color: #10b981;
+  animation: sparkle-rotate 2s linear infinite;
+}
+
+@keyframes sparkle-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .detail-tabs {
@@ -930,6 +1072,42 @@ onMounted(() => {
   &:hover {
     color: #66b1ff;
   }
+}
+
+
+.score-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.35);
+  border: 2px solid #fff;
+  z-index: 10;
+  transform: rotate(3deg);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: help;
+
+  &.is-updating {
+    animation: badge-pulse-highlight 0.8s ease-in-out;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  }
+}
+
+@keyframes badge-pulse-highlight {
+  0% { transform: rotate(3deg) scale(1); }
+  50% { transform: rotate(0deg) scale(1.3); }
+  100% { transform: rotate(3deg) scale(1); }
+}
+
+.lead-card:hover .score-badge {
+  transform: rotate(0deg) scale(1.1);
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.45);
 }
 
 

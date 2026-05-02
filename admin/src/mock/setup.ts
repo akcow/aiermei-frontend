@@ -249,8 +249,12 @@ export function setupMock() {
     const body = parseData(config.data)
 
     let normalizedPath = path;
-    if (path.startsWith('/staff/')) {
-      normalizedPath = path.replace('/staff/', '/admin/');
+    if (path.startsWith('/api/v1')) {
+      normalizedPath = path.replace('/api/v1', '');
+    }
+    
+    if (normalizedPath.startsWith('/staff/')) {
+      normalizedPath = normalizedPath.replace('/staff/', '/admin/');
     }
 
     await new Promise((resolve) => setTimeout(resolve, 120))
@@ -634,14 +638,28 @@ export function setupMock() {
       return createResponse(config, item || state.customers[0])
     }
 
-    if ((path.startsWith('/analytics/users/') || normalizedPath.match(/^\/admin\/customers\/[^/]+\/journey$/)) && method === 'GET') {
+    if ((normalizedPath.startsWith('/analytics/users/') || normalizedPath.match(/^\/admin\/customers\/[^/]+\/journey$/)) && method === 'GET') {
       const seg = path.split('/').filter(Boolean)
       const uid = seg[2] || state.customers[0]?.uid
       return createResponse(config, mockUserJourney(uid))
     }
 
-    if (path.startsWith('/admin/users/') && path.endsWith('/analysis') && method === 'POST') {
+    if (normalizedPath.startsWith('/admin/users/') && normalizedPath.endsWith('/analysis') && method === 'POST') {
+      const uid = normalizedPath.split('/')[3]
       const result = mockAnalysisResult()
+      
+      // 更新 Mock 状态中的客户数据，以便后续 getCustomerDetail 能拿到更新后的结果
+      const customer = state.customers.find((u) => u.uid === uid)
+      if (customer) {
+        customer.profileSummary = result.script
+        // 模拟 AI 分析后分数发生变化
+        customer.manualTotalScore = Math.floor(60 + Math.random() * 35)
+        // 模拟标签更新
+        if (result.tags && result.tags.length > 0) {
+          customer.tags = [...(customer.tags || []), ...result.tags.map(t => typeof t === 'string' ? t : t.tagName)]
+        }
+      }
+
       return createResponse(config, {
         ...result,
         concerns: [{ code: 'sleep_quality', name: '睡眠质量', confidence: 0.81 }],
@@ -784,7 +802,7 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path.startsWith('/admin/orders/') && method === 'GET' && !path.endsWith('/stats')) {
+    if (normalizedPath.startsWith('/admin/orders/') && method === 'GET' && !normalizedPath.endsWith('/stats')) {
       const id = findByPathId(path)
       const item = state.orders.find((x) => x.id === id)
       return createResponse(config, item || state.orders[0])
@@ -1173,7 +1191,7 @@ export function setupMock() {
     }
 
     // Mock default for admin/analytics paths to avoid falling back to network in demo mode.
-    if (normalizedPath.startsWith('/admin') || path.startsWith('/analytics')) {
+    if (normalizedPath.startsWith('/admin') || normalizedPath.startsWith('/analytics')) {
       console.warn(`[Mock Adapter] Default mock response for: ${method} ${path}`)
       return createResponse(config, null)
     }

@@ -188,17 +188,11 @@ export const hotlineList = [
 ];
 
 export const memberArticles = [
-  { id: 'mag_1', title: 'ECHOES OF HER', subtitle: '分娩后身体与情绪节律重建', desc: '阅读详情', image: 'https://picsum.photos/seed/mag1/400/400' },
-  { id: 'mag_2', title: 'BEYOND MOTHERHOOD', subtitle: '母职之外的自我修复课题', desc: '阅读详情', image: 'https://picsum.photos/seed/mag2/400/400' }
+  { id: 'mag_1', title: 'ECHOES OF HER', subtitle: '分娩后身体与情绪节律重建', desc: '阅读详情', cover: 'https://picsum.photos/seed/mag1/400/400' },
+  { id: 'mag_2', title: 'BEYOND MOTHERHOOD', subtitle: '母职之外的自我修复课题', desc: '阅读详情', cover: 'https://picsum.photos/seed/mag2/400/400' }
 ];
 
-export const magazines: Magazine[] = memberArticles.map(m => ({
-  id: m.id,
-  title: m.title,
-  subtitle: m.subtitle,
-  cover: m.image,
-  desc: m.desc
-}));
+export const magazines: Magazine[] = [...memberArticles];
 
 export const magazineDetails: MagazineDetail[] = [
   {

@@ -87,7 +87,7 @@
 import { computed, ref, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockBanners } from '@/mock/data'
+import { getBanners, createBanner, updateBanner, deleteBanner } from '@/api/modules/media'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { Banner } from '@/types'
 
@@ -132,29 +132,41 @@ function showEditor(banner?: Banner) {
   editorVisible.value = true
 }
 
-function saveBanner() {
+async function saveBanner() {
   if (!canSaveBanner.value) {
     ElMessage.warning('请先填写必填项：标题、封面图')
     return
   }
-  if (editingBanner.value) {
-    Object.assign(editingBanner.value, bannerForm)
-    ElMessage.success('海报已更新')
-  } else {
-    banners.value.push({
-      id: 'banner_' + Date.now(),
-      ...bannerForm,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    } as Banner)
-    ElMessage.success('海报已创建')
+  
+  const payload = {
+    ...bannerForm,
+    status: editingBanner.value ? editingBanner.value.status : 'active'
   }
-  editorVisible.value = false
+
+  try {
+    if (editingBanner.value) {
+      await updateBanner(editingBanner.value.id, payload)
+      ElMessage.success('海报已更新')
+    } else {
+      await createBanner(payload)
+      ElMessage.success('海报已创建')
+    }
+    editorVisible.value = false
+    await loadBanners()
+  } catch (error) {
+    console.error(error)
+  }
 }
 
-function toggleStatus(banner: Banner) {
-  banner.status = banner.status === 'active' ? 'inactive' : 'active'
-  ElMessage.success(banner.status === 'active' ? '海报已上线' : '海报已下线')
+async function toggleStatus(banner: Banner) {
+  const newStatus = banner.status === 'active' ? 'inactive' : 'active'
+  try {
+    await updateBanner(banner.id, { status: newStatus })
+    ElMessage.success(newStatus === 'active' ? '海报已上线' : '海报已下线')
+    await loadBanners()
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 function deleteBannerHandle(banner: Banner) {
@@ -162,17 +174,28 @@ function deleteBannerHandle(banner: Banner) {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    const index = banners.value.findIndex(b => b.id === banner.id)
-    if (index > -1) {
-      banners.value.splice(index, 1)
+  }).then(async () => {
+    try {
+      await deleteBanner(banner.id)
+      ElMessage.success('海报已删除')
+      await loadBanners()
+    } catch (error) {
+      console.error(error)
     }
-    ElMessage.success('海报已删除')
   }).catch(() => {})
 }
 
+async function loadBanners() {
+  try {
+    const res = await getBanners()
+    banners.value = res.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 onMounted(() => {
-  banners.value = [...mockBanners]
+  void loadBanners()
 })
 </script>
 

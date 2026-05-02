@@ -42,20 +42,29 @@ export const mockDashboardOverview: DashboardOverview = {
 
 // ============ 用户列表 ============
 
-export const mockCustomers: Customer[] = Array.from({ length: 50 }, (_, i) => ({
-  uid: `user_${String(i + 1).padStart(3, '0')}`,
-  name: `${Math.floor(i / 10) + 1}01房间号宝妈`,
-  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`,
-  phone: `138****${String(1000 + i).slice(-4)}`,
-  memberLevel: ['normal', 'gold', 'diamond'][i % 3],
-  pregnancyInfo: i % 2 === 0 ? {
-    type: 'pregnancy',
-    date: '2026-08-15'
-  } : undefined,
-  tags: i % 3 === 0 ? ['高意向', '套房咨询'] : i % 3 === 1 ? ['产康咨询'] : [],
-  lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-  createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-}))
+export const mockCustomers: Customer[] = Array.from({ length: 50 }, (_, i) => {
+  const manualTotalScore = i % 4 === 0 ? undefined : Math.floor(65 + Math.random() * 30);
+  return {
+    uid: `user_${String(i + 1).padStart(3, '0')}`,
+    name: `${Math.floor(i / 10) + 1}01房间号宝妈`,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`,
+    phone: `138****${String(1000 + i).slice(-4)}`,
+    memberLevel: ['normal', 'gold', 'diamond'][i % 3],
+    pregnancyInfo: i % 2 === 0 ? {
+      type: 'pregnancy',
+      date: '2026-08-15'
+    } : undefined,
+    tags: i % 3 === 0 ? ['高意向', '套房咨询'] : i % 3 === 1 ? ['产康咨询'] : [],
+    lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    manualTotalScore,
+    manualScoreSnapshot: manualTotalScore ? {
+      conversionIntent: manualTotalScore + (i % 5),
+      spendingPower: manualTotalScore - (i % 3),
+      urgency: manualTotalScore + (i % 2)
+    } : undefined
+  }
+})
 
 export function mockUserJourney(uid: string): UserJourney {
   const paths = [
@@ -191,7 +200,7 @@ export const mockSuites: Suite[] = [
     coverImage: 'https://picsum.photos/seed/suite2/600/400',
     images: ['https://picsum.photos/seed/suite2_1/800/600', 'https://picsum.photos/seed/suite2_2/800/600'],
     description: '宽敞豪华的套房...',
-    facilities: ['24h呼叫系统', '智能马桶', '空气净化器', '专业护理床', '婴儿监护系统'],
+    facilities: ['24h呼call系统', '智能马桶', '空气净化器', '专业护理床', '婴儿监护系统'],
     status: 'active',
     sort: 2
   },

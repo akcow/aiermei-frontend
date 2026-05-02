@@ -186,7 +186,6 @@ let latestUserMessageRendered = false;
 let pendingAiChatSessionId: string | null = null;
 let pendingAiChatMsgId: string | null = null;
 let aiChatTrackedForCurrentSend = false;
-let historyRequestVersion = 0;
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '';
@@ -299,11 +298,13 @@ async function loadHistoryMessages(cursor?: string) {
         role: msg.role === 'USER' ? 'user' : 'ai',
         text: msg.content,
         seqNo: msg.seqNo
-      })); // 后端已按 seqNo 升序返回，不再需要 reverse
+      }));
 
       if (cursor) {
-        // 加载更多历史，插入到前面；不强制滚底，避免打断用户上翻
-        messages.value = [...historyMessages, ...messages.value];
+        // 加载更多历史，带去重
+        const existingSeqs = new Set(messages.value.map(m => m.seqNo));
+        const uniqueNew = historyMessages.filter(m => !existingSeqs.has(m.seqNo));
+        messages.value = [...uniqueNew, ...messages.value];
       } else {
         // 首次加载历史
         messages.value = historyMessages;
@@ -450,6 +451,19 @@ function handleSSEEvent(event: SSEEvent, messageIndex: number) {
       // 可以在消息末尾添加推荐问题
       break;
     case 'done':
+      // 兜底：如果 AI 回复为空，可能是 delta 丢失，通过历史接口同步最新一条
+      if (!messages.value[messageIndex].text && currentSessionId) {
+        getAiSessionMessages(currentSessionId, undefined, 1).then(res => {
+          if (res.data?.list?.length) {
+            const last = res.data.list[0];
+            if (last.role === 'ASSISTANT') {
+              messages.value[messageIndex].text = last.content;
+              messages.value[messageIndex].isLoading = false;
+              scrollToBottom();
+            }
+          }
+        });
+      }
       sseConnection?.abort();
       sseConnection = null;
       break;
