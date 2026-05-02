@@ -78,12 +78,13 @@ export interface SSEOptions {
   onComplete?: () => void;
 }
 
-// SSE buffer 用于处理跨 chunk 半包/粘包
-let sseBuffer = '';
-
 export function createSSEConnection(options: SSEOptions): UniApp.RequestTask {
-  // 重置 buffer
-  sseBuffer = '';
+  let sseTextBuffer = '';
+  let sseByteBuffer = new Uint8Array(0);
+  let decoder: TextDecoder | null = null;
+  if (typeof TextDecoder !== 'undefined') {
+    decoder = new TextDecoder('utf-8');
+  }
 
   const token = getToken();
   const headers: Record<string, string> = {
@@ -112,57 +113,71 @@ export function createSSEConnection(options: SSEOptions): UniApp.RequestTask {
 
   requestTask.onChunkReceived?.((response) => {
     try {
-      const arrayBuffer = response.data;
-      const decoder = new TextDecoder('utf-8');
-      const text = decoder.decode(arrayBuffer);
-      parseSSEText(text, options.onEvent);
+      const chunk = new Uint8Array(response.data);
+      let text = '';
+      
+      if (decoder) {
+        text = decoder.decode(chunk, { stream: true });
+      } else {
+        // Fallback for missing TextDecoder
+        const newBuffer = new Uint8Array(sseByteBuffer.length + chunk.length);
+        newBuffer.set(sseByteBuffer);
+        newBuffer.set(chunk, sseByteBuffer.length);
+        sseByteBuffer = newBuffer;
+
+        let str = '';
+        for (let i = 0; i < sseByteBuffer.length; i += 1000) {
+          const sub = sseByteBuffer.subarray(i, i + 1000);
+          str += String.fromCharCode.apply(null, Array.from(sub));
+        }
+        try {
+          text = decodeURIComponent(escape(str));
+          sseByteBuffer = new Uint8Array(0); // successfully decoded, clear byte buffer
+        } catch (e) {
+          // split multi-byte character, wait for next chunk
+          return;
+        }
+      }
+
+      if (text) {
+        sseTextBuffer += text;
+        const events = sseTextBuffer.split('\n\n');
+        sseTextBuffer = events.pop() || '';
+
+        for (const eventText of events) {
+          if (!eventText.trim()) continue;
+
+          const lines = eventText.split('\n');
+          let currentEvent = 'message';
+          let currentData = '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEvent = line.substring(6).trim();
+            } else if (line.startsWith('data:')) {
+              const dataContent = line.substring(5).trim();
+              if (currentData) {
+                currentData += '\n' + dataContent;
+              } else {
+                currentData = dataContent;
+              }
+            }
+          }
+
+          if (currentData) {
+            try {
+              const parsedData = JSON.parse(currentData);
+              options.onEvent({ event: currentEvent, data: parsedData });
+            } catch {
+              options.onEvent({ event: currentEvent, data: currentData });
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('SSE parse error:', e);
     }
   });
 
   return requestTask;
-}
-
-function parseSSEText(text: string, onEvent: (event: SSEEvent) => void) {
-  // 将新数据追加到 buffer
-  sseBuffer += text;
-
-  // 按双换行符分割事件（SSE 规范：事件以 \n\n 分隔）
-  const events = sseBuffer.split('\n\n');
-
-  // 最后一个可能是不完整的事件，保留在 buffer 中
-  sseBuffer = events.pop() || '';
-
-  for (const eventText of events) {
-    if (!eventText.trim()) continue;
-
-    const lines = eventText.split('\n');
-    let currentEvent = 'message';
-    let currentData = '';
-
-    for (const line of lines) {
-      if (line.startsWith('event:')) {
-        currentEvent = line.substring(6).trim();
-      } else if (line.startsWith('data:')) {
-        const dataContent = line.substring(5).trim();
-        if (currentData) {
-          currentData += '\n' + dataContent;
-        } else {
-          currentData = dataContent;
-        }
-      }
-    }
-
-    if (currentData) {
-      try {
-        // 尝试解析为 JSON 对象
-        const parsedData = JSON.parse(currentData);
-        onEvent({ event: currentEvent, data: parsedData });
-      } catch {
-        // 如果不是 JSON，直接作为字符串传递
-        onEvent({ event: currentEvent, data: currentData });
-      }
-    }
-  }
 }

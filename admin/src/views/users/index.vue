@@ -24,7 +24,13 @@
               <el-avatar :size="48" :src="user.avatar">{{ user.name?.charAt(0) }}</el-avatar>
               <div class="meta">
                 <h3>{{ user.name }}</h3>
-                <p>{{ user.phone || '-' }}</p>
+                <p class="phone-meta">
+                  <span class="phone-text">{{ user.phone || '-' }}</span>
+                  <el-icon v-if="user.phone && user.phone !== '-'" class="reveal-icon" @click.stop="togglePhone(user)">
+                    <View v-if="user.phone.includes('*')" />
+                    <Hide v-else />
+                  </el-icon>
+                </p>
               </div>
             </div>
           </div>
@@ -87,7 +93,13 @@
             <el-avatar :size="48" :src="selectedUser.avatar">{{ selectedUser.name?.charAt(0) }}</el-avatar>
             <div class="meta">
               <h2>{{ selectedUser.name }}</h2>
-              <p>{{ selectedUser.phone || '-' }}</p>
+              <p class="phone-meta">
+                <span class="phone-text">{{ selectedUser.phone || '-' }}</span>
+                <el-icon v-if="selectedUser.phone && selectedUser.phone !== '-'" class="reveal-icon" @click.stop="togglePhone(selectedUser)">
+                  <View v-if="selectedUser.phone.includes('*')" />
+                  <Hide v-else />
+                </el-icon>
+              </p>
               <p class="last-active">最后更新：{{ formatDate(selectedUser.lastActive) }}</p>
             </div>
           </div>
@@ -210,6 +222,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
+import { View, Hide } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { analyzeUser as analyzeUserApi, getCustomerDetail, getCustomers, getUserJourney } from '@/api/modules/auth'
 import {
@@ -217,6 +230,7 @@ import {
   getCustomerManualScoreDraft,
   getCustomerTagCorrectionLogs,
   getCustomerTagTrace,
+  getCustomerPhone,
   getCustomerTags,
   removeCustomerTag,
   submitCustomerManualScore
@@ -261,6 +275,11 @@ const addingTag = ref(false)
 
 const initialScoreSnapshot = ref('')
 const initialNoteSnapshot = ref('')
+
+const updateSnapshots = () => {
+  initialScoreSnapshot.value = JSON.stringify(scoreDimensions.map((x) => ({ key: x.key, score: x.score })))
+  initialNoteSnapshot.value = manualScoreNote.value
+}
 
 const overallManualScore = computed(() => {
   const sum = scoreDimensions.reduce((acc, item) => acc + Number(item.score || 0), 0)
@@ -379,11 +398,20 @@ async function loadProfileData(uid: string) {
   initialNoteSnapshot.value = manualScoreNote.value
 }
 
+
 async function openProfileDialog(user: Customer) {
-  profileDialogVisible.value = true
   selectedUser.value = user
+  // Reset score dimensions to defaults
+  scoreDimensions[0].score = 60
+  scoreDimensions[1].score = 55
+  scoreDimensions[2].score = 65
+  manualScoreNote.value = ''
+  updateSnapshots()
+  
+  profileDialogVisible.value = true
   await loadProfileData(user.uid)
 }
+
 
 async function submitManualScore() {
   if (!selectedUser.value?.uid) return
@@ -447,6 +475,33 @@ async function removeTag(tag: CustomerTag) {
   ElMessage.success('标签已删除')
 }
 
+
+
+const maskedPhoneMap = new Map<string, string>()
+
+async function togglePhone(user: Customer) {
+  if (!user.phone) return
+  const isMasked = user.phone.includes('*')
+  
+  if (isMasked) {
+    try {
+      if (!maskedPhoneMap.has(user.uid)) {
+        maskedPhoneMap.set(user.uid, user.phone)
+      }
+      const res = await getCustomerPhone(user.uid)
+      user.phone = res.data.phone
+    } catch (e) {
+      ElMessage.error('获取完整手机号失败')
+    }
+  } else {
+    const masked = maskedPhoneMap.get(user.uid)
+    if (masked) {
+      user.phone = masked
+    }
+  }
+}
+
+
 async function openTagTrace(tag: CustomerTag) {
   if (!selectedUser.value?.uid) return
   activeTraceTagName.value = tag.tagName
@@ -460,22 +515,31 @@ async function openTagTrace(tag: CustomerTag) {
   }
 }
 
-async function handleDialogBeforeClose(done: () => void) {
+
+const handleDialogBeforeClose = (done: any) => {
   if (!hasUnsavedScoreChanges.value) {
-    done()
+    if (typeof done === 'function') {
+      done()
+    } else {
+      profileDialogVisible.value = false
+    }
     return
   }
-  try {
-    await ElMessageBox.confirm('评分内容有未保存改动，确定关闭吗？', '未保存提示', {
-      confirmButtonText: '仍然关闭',
-      cancelButtonText: '继续编辑',
-      type: 'warning'
-    })
-    done()
-  } catch {
-    // keep dialog open
-  }
+
+  ElMessageBox.confirm('评分内容有未保存改动，确定关闭吗？', '未保存提示', {
+    confirmButtonText: '仍然关闭',
+    cancelButtonText: '继续编辑',
+    type: 'warning',
+    distinguishCancelAndClose: true
+  }).then(() => {
+    // Force close
+    profileDialogVisible.value = false
+    if (typeof done === 'function') done()
+  }).catch(() => {
+    // Keep open
+  })
 }
+
 
 onMounted(() => {
   void loadUsers()
@@ -786,4 +850,32 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 }
+
+
+.phone-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phone-text {
+  font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
+  width: 115px;
+  font-size: 15px;
+  display: inline-block;
+}
+
+.reveal-icon {
+  cursor: pointer;
+  color: #409eff;
+  transition: color 0.2s;
+  font-size: 14px;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #66b1ff;
+  }
+}
+
+
 </style>

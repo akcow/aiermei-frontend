@@ -186,6 +186,7 @@ let latestUserMessageRendered = false;
 let pendingAiChatSessionId: string | null = null;
 let pendingAiChatMsgId: string | null = null;
 let aiChatTrackedForCurrentSend = false;
+let historyRequestVersion = 0;
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '';

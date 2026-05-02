@@ -36,7 +36,7 @@ const employeeChildren: RouteRecordRaw[] = [
         path: 'banners',
         name: 'Banners',
         component: () => import('@/views/content/banners.vue'),
-        meta: { title: 'Banner管理', roles: ['editor', 'viewer', 'staff'] }
+        meta: { title: '海报管理', roles: ['editor', 'viewer', 'staff'] }
       },
       {
         path: 'magazines',

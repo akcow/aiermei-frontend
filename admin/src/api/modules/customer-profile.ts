@@ -36,3 +36,7 @@ export function getCustomerTagCorrectionLogs(uid: string) {
 export function getCustomerTagTrace(uid: string, tagCode: string) {
   return get<CustomerTagTraceRecord[]>(`${useUserStore().apiPrefix}/customers/${uid}/tags/${encodeURIComponent(tagCode)}/trace`)
 }
+
+export function getCustomerPhone(uid: string) {
+  return get<{ phone: string }>(`${useUserStore().apiPrefix}/customers/${uid}/phone`)
+}

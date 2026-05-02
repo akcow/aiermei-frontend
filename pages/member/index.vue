@@ -99,7 +99,7 @@ import AuthModal from '@/components/AuthModal.vue';
 import BottomNav from '@/components/BottomNav.vue';
 import { memberArticles } from '@/mock/data';
 import { getLocalProfile, setLoginState, setLocalProfile, trackPath, getToken, clearSession } from '@/store/session';
-import { getCurrentUser } from '@/api/modules/member';
+import { getCurrentUser, getMemberHome } from '@/api/modules/member';
 import { tracker } from '@/utils/tracker';
 
 const profile = ref(getLocalProfile());
@@ -130,7 +130,7 @@ const bottomMenus = [
   { id: 'faq', label: '常见问题', iconPath: '/static/icons/shield.svg' }
 ];
 
-const articles = memberArticles;
+const articles = ref([...memberArticles]);
 const articleIndex = ref(0);
 
 function openSub(id: string) {

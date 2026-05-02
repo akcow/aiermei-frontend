@@ -108,16 +108,22 @@ function formatViews(views?: number): string {
 async function toggleLike() {
   if (!article.value || isLiking.value) return;
 
-  // 检查登录状态
   if (!getToken()) {
     uni.showToast({ title: '请先登录后再点赞', icon: 'none' });
     return;
   }
 
   isLiking.value = true;
+  const originalLiked = article.value.liked;
+  const originalLikes = article.value.likes || 0;
+
+  // 乐观更新
+  article.value.liked = !originalLiked;
+  article.value.likes = originalLiked ? Math.max(0, originalLikes - 1) : originalLikes + 1;
+
   try {
     let res;
-    if (article.value.liked) {
+    if (originalLiked) {
       res = await unlikeArticle(article.value.id);
     } else {
       res = await likeArticle(article.value.id);
@@ -125,8 +131,13 @@ async function toggleLike() {
     if (res.code === 0 && res.data) {
       article.value.liked = res.data.liked === true;
       article.value.likes = res.data.likes;
+    } else {
+      article.value.liked = originalLiked;
+      article.value.likes = originalLikes;
     }
   } catch (e: any) {
+    article.value.liked = originalLiked;
+    article.value.likes = originalLikes;
     if (e?.code === 4003) {
       uni.showToast({ title: '请先登录后再点赞', icon: 'none' });
     } else {

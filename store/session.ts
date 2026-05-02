@@ -1,4 +1,4 @@
-﻿import type { UserProfile } from '@/types/domain';
+import type { UserProfile } from '@/types/domain';
 import { defaultProfile } from '@/mock/data';
 
 const PROFILE_KEY = 'aiermei_profile';
@@ -48,7 +48,7 @@ export function clearToken() {
 
 export function clearSession() {
   clearToken();
-  clearAiSessionId();
+  // 退出登录不清理 AI 会话映射，重登同账号可恢复
   // 重置 profile 为默认值
   uni.removeStorageSync(PROFILE_KEY);
 }

@@ -9,7 +9,7 @@
 
     <view class="content">
       <view class="title">{{ detail.title }}</view>
-      <view class="desc">{{ detail.content }}</view>
+      <rich-text class="desc" :nodes="safeContent"></rich-text>
     </view>
 
     <view class="actions">
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getBannerDetail, getAppointmentQrCode } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
@@ -42,6 +42,11 @@ const detail = ref<BannerDetail>({
   title: '',
   content: '',
   image: 'https://picsum.photos/seed/detail/800/1200'
+});
+
+const safeContent = computed(() => {
+  if (!detail.value.content) return '';
+  return detail.value.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 });
 
 function parseEstimatedPriceFromText(text: string): number | undefined {

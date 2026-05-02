@@ -26,6 +26,9 @@
       </view>
     </view>
 
+<view class="login-prompt" v-else>
+      <view class="prompt-icon">🔒</view>
+
     <view class="overlay" v-if="selected">
       <view class="detail-panel slide-in">
         <view class="detail-hero">
@@ -74,8 +77,7 @@
       </view>
     </view>
 
-    <view class="login-prompt" v-else>
-      <view class="prompt-icon">🔒</view>
+    
       <view class="prompt-title">登录后查看套房详情</view>
       <view class="prompt-desc">请先登录以查看完整房型信息</view>
       <button class="login-btn" @click="showAuth = true">立即登录</button>

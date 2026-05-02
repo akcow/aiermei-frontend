@@ -248,10 +248,15 @@ export function setupMock() {
     const query = Object.fromEntries(parsed.searchParams.entries())
     const body = parseData(config.data)
 
+    let normalizedPath = path;
+    if (path.startsWith('/staff/')) {
+      normalizedPath = path.replace('/staff/', '/admin/');
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 120))
 
     // Auth
-    if ((path === '/admin/auth/login' || path === '/staff/auth/login') && method === 'POST') {
+    if ((normalizedPath === '/admin/auth/login' || path === '/staff/auth/login') && method === 'POST') {
       const isStaffLogin = path.includes('/staff/')
       const username = String(body.username || '').trim()
       const password = String(body.password || '')
@@ -280,19 +285,19 @@ export function setupMock() {
         }
       })
     }
-    if ((path === '/admin/auth/me' || path === '/staff/auth/me') && method === 'GET') {
+    if ((normalizedPath === '/admin/auth/me' || path === '/staff/auth/me') && method === 'GET') {
       return createResponse(config, mockAdminUser)
     }
 
-    if ((path === '/admin/auth/me' || path === '/staff/auth/me') && method === 'PUT') {
+    if ((normalizedPath === '/admin/auth/me' || path === '/staff/auth/me') && method === 'PUT') {
       return createResponse(config, { ...mockAdminUser, ...body })
     }
 
-    if ((path === '/admin/auth/password' || path === '/staff/auth/password') && method === 'PUT') {
+    if ((normalizedPath === '/admin/auth/password' || path === '/staff/auth/password') && method === 'PUT') {
       return createResponse(config, null)
     }
 
-    if (path === '/admin/auth/logout' && method === 'POST') {
+    if (normalizedPath === '/admin/auth/logout' && method === 'POST') {
       return createResponse(config, null)
     }
 
@@ -308,7 +313,7 @@ export function setupMock() {
         uploadedAt: now()
       })
     }
-    if (path === '/admin/tag-pending' && method === 'GET') {
+    if (normalizedPath === '/admin/tag-pending' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 20)
       const status = String(query.status || 'PENDING').trim()
@@ -318,11 +323,11 @@ export function setupMock() {
       const mapped = filtered.map((item) => ({ ...item, topCandidate: item.candidates?.[0] || null }))
       return createResponse(config, paginate(mapped, page, pageSize))
     }
-    if (path.match(/^\/admin\/tag-pending\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/tag-pending\/[^/]+$/) && method === 'GET') {
       const pendingId = findByPathId(path)
       return createResponse(config, state.tagPending.find((x) => x.pendingId === pendingId) || state.tagPending[0])
     }
-    if (path.match(/^\/admin\/tag-pending\/[^/]+\/mentions$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/tag-pending\/[^/]+\/mentions$/) && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 20)
       const list = Array.from({ length: 8 }, (_, idx) => ({
@@ -341,7 +346,7 @@ export function setupMock() {
       }))
       return createResponse(config, paginate(list, page, pageSize))
     }
-    if (path.match(/^\/admin\/tag-pending\/[^/]+\/review$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/tag-pending\/[^/]+\/review$/) && method === 'POST') {
       const pendingId = path.split('/')[3]
       const action = body.action
       const item = state.tagPending.find((x) => x.pendingId === pendingId)
@@ -360,10 +365,10 @@ export function setupMock() {
         removedPendingUserTagCount: 3
       })
     }
-    if (path === '/admin/scoring-weights' && method === 'GET') {
+    if (normalizedPath === '/admin/scoring-weights' && method === 'GET') {
       return createResponse(config, state.scoringWeights)
     }
-    if (path === '/admin/scoring-weights' && method === 'PUT') {
+    if (normalizedPath === '/admin/scoring-weights' && method === 'PUT') {
       const conversionIntent = Number(body.conversionIntent)
       const spendingPower = Number(body.spendingPower)
       const recentActivity = Number(body.recentActivity)
@@ -374,10 +379,10 @@ export function setupMock() {
       state.scoringWeights = { conversionIntent, spendingPower, recentActivity, total, updatedAt: now(), updatedBy: 'admin_001' }
       return createResponse(config, state.scoringWeights)
     }
-    if (path === '/admin/decay-config' && method === 'GET') {
+    if (normalizedPath === '/admin/decay-config' && method === 'GET') {
       return createResponse(config, state.decayConfig)
     }
-    if (path.match(/^\/admin\/decay-config\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/decay-config\/[^/]+$/) && method === 'PUT') {
       const eventType = findByPathId(path)
       const target = state.decayConfig.find((x) => x.eventType === eventType)
       if (!target) return createResponse(config, null, 4000, 'eventType not found')
@@ -386,22 +391,22 @@ export function setupMock() {
       })
       return createResponse(config, target)
     }
-    if (path === '/admin/dashboard/traffic-sources' && method === 'GET') {
+    if (normalizedPath === '/admin/dashboard/traffic-sources' && method === 'GET') {
       const days = Math.max(1, Math.min(90, toNumber(query.days, 7)))
       const total = state.trafficSources.reduce((acc, item) => acc + Number(item.count), 0)
       const sources = state.trafficSources.map((item) => ({ ...item, ratio: total ? item.count / total : 0 }))
       return createResponse(config, { days, total, sources })
     }
-    if (path === '/admin/centers/facilities' && method === 'GET') {
+    if (normalizedPath === '/admin/centers/facilities' && method === 'GET') {
       return createResponse(config, [...state.centerFacilities].sort((a, b) => a.sort - b.sort))
     }
-    if (path === '/admin/centers/facilities' && method === 'POST') {
+    if (normalizedPath === '/admin/centers/facilities' && method === 'POST') {
       if (!String(body.title || '').trim()) return createResponse(config, null, 4000, 'title required')
       const item = { id: nextId('facility'), ...body }
       state.centerFacilities.push(item)
       return createResponse(config, item)
     }
-    if (path.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const idx = state.centerFacilities.findIndex((x) => x.id === id)
       if (idx < 0) return createResponse(config, null, 4004, 'facility not found')
@@ -409,14 +414,14 @@ export function setupMock() {
       state.centerFacilities[idx] = { ...state.centerFacilities[idx], ...body }
       return createResponse(config, state.centerFacilities[idx])
     }
-    if (path.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/centers\/facilities\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       const idx = state.centerFacilities.findIndex((x) => x.id === id)
       if (idx < 0) return createResponse(config, null, 4004, 'facility not found')
       state.centerFacilities.splice(idx, 1)
       return createResponse(config, null)
     }    // Dashboard
-    if (path === '/admin/dashboard/overview' && method === 'GET') {
+    if (normalizedPath === '/admin/dashboard/overview' && method === 'GET') {
       return createResponse(config, {
         ...mockDashboardOverview,
         orderCount: state.orders.length,
@@ -425,7 +430,7 @@ export function setupMock() {
     }
 
     // Customers + Analytics
-    if (path === '/admin/customers' && method === 'GET') {
+    if (normalizedPath === '/admin/customers' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const keyword = (query.keyword || '').trim()
@@ -435,7 +440,20 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'GET') {
+    
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/phone$/) && method === 'GET') {
+      const uid = path.split('/')[3]
+      const customer = state.customers.find((x) => x.uid === uid)
+      const lastFour = uid.slice(-4).padStart(4, '0')
+      return createResponse(config, {
+        uid,
+        phone: `1398888${lastFour}`,
+        maskedPhone: customer?.phone || `139****${lastFour}`,
+        viewedAt: now()
+      })
+    }
+
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'GET') {
       const uid = path.split('/')[3]
       const customer = state.customers.find((x) => x.uid === uid)
       const tags = Array.isArray(customer?.tags) ? customer.tags : []
@@ -462,7 +480,7 @@ export function setupMock() {
       return createResponse(config, normalized)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/tags$/) && method === 'POST') {
       const uid = path.split('/')[3]
       const customer = state.customers.find((x) => x.uid === uid)
       if (!customer) return createResponse(config, null, 4004, 'customer not found')
@@ -486,7 +504,7 @@ export function setupMock() {
       return createResponse(config, tagObj)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+\/trace$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+\/trace$/) && method === 'GET') {
       const seg = path.split('/').filter(Boolean)
       const uid = seg[2]
       const tagCode = decodeURIComponent(seg[4])
@@ -528,7 +546,7 @@ export function setupMock() {
       return createResponse(config, traces)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/tags\/[^/]+$/) && method === 'DELETE') {
       const seg = path.split('/').filter(Boolean)
       const uid = seg[2]
       const tagCode = decodeURIComponent(seg[4])
@@ -559,7 +577,7 @@ export function setupMock() {
       return createResponse(config, null)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/manual-score$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/manual-score$/) && method === 'GET') {
       const uid = path.split('/')[3]
       const draft = state.customerManualScores[uid] || {
         dimensions: [
@@ -575,7 +593,7 @@ export function setupMock() {
       return createResponse(config, draft)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/manual-score:confirm$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/manual-score:confirm$/) && method === 'POST') {
       const uid = path.split('/')[3]
       const dimensions = Array.isArray(body.dimensions) ? body.dimensions : []
       if (dimensions.length === 0) return createResponse(config, null, 4000, 'dimensions required')
@@ -601,13 +619,13 @@ export function setupMock() {
       return createResponse(config, saved)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+\/tag-corrections$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+\/tag-corrections$/) && method === 'GET') {
       const uid = path.split('/')[3]
       const list = state.customerTagCorrections.filter((x) => x.uid === uid)
       return createResponse(config, list)
     }
 
-    if (path.match(/^\/admin\/customers\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/customers\/[^/]+$/) && method === 'GET') {
       const uid = findByPathId(path)
       const item = state.customers.find((u) => u.uid === uid)
       return createResponse(config, item || state.customers[0])
@@ -630,7 +648,7 @@ export function setupMock() {
     }
 
     // Account Management - Staff
-    if (path === '/admin/accounts/staff' && method === 'GET') {
+    if (normalizedPath === '/admin/accounts/staff' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const keyword = (query.keyword || '').toLowerCase().trim()
@@ -646,7 +664,7 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path === '/admin/accounts/staff' && method === 'POST') {
+    if (normalizedPath === '/admin/accounts/staff' && method === 'POST') {
       const item = {
         id: nextId('staff'),
         onlineStatus: 'OFFLINE',
@@ -660,36 +678,36 @@ export function setupMock() {
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       const item = state.staffs.find(x => x.id === id)
       return createResponse(config, item || state.staffs[0])
     }
 
-    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.staffs, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/accounts\/staff\/[^/]+\/status$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/staff\/[^/]+\/status$/) && method === 'PUT') {
       const id = path.split('/')[4]
       const item = upsertById(state.staffs, id, { status: body.status })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/accounts\/staff\/[^/]+\/password:reset$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/staff\/[^/]+\/password:reset$/) && method === 'PUT') {
       return createResponse(config, { updatedAt: now() })
     }
 
-    if (path.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/accounts\/staff\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.staffs, id)
       return createResponse(config, null)
     }
 
     // Account Management - Admin
-    if (path === '/admin/accounts/admins' && method === 'GET') {
+    if (normalizedPath === '/admin/accounts/admins' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const keyword = (query.keyword || '').toLowerCase().trim()
@@ -705,7 +723,7 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path === '/admin/accounts/admins' && method === 'POST') {
+    if (normalizedPath === '/admin/accounts/admins' && method === 'POST') {
       const item = {
         id: nextId('admin'),
         onlineStatus: 'OFFLINE',
@@ -719,36 +737,36 @@ export function setupMock() {
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       const item = state.admins.find(x => x.id === id)
       return createResponse(config, item || state.admins[0])
     }
 
-    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.admins, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/accounts\/admins\/[^/]+\/status$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/admins\/[^/]+\/status$/) && method === 'PUT') {
       const id = path.split('/')[4]
       const item = upsertById(state.admins, id, { status: body.status })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/accounts\/admins\/[^/]+\/password:reset$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/accounts\/admins\/[^/]+\/password:reset$/) && method === 'PUT') {
       return createResponse(config, { updatedAt: now() })
     }
 
-    if (path.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/accounts\/admins\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.admins, id)
       return createResponse(config, null)
     }
 
     // Orders
-    if (path === '/admin/orders' && method === 'GET') {
+    if (normalizedPath === '/admin/orders' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const status = (query.status || '').trim()
@@ -769,7 +787,7 @@ export function setupMock() {
       return createResponse(config, item || state.orders[0])
     }
 
-    if (path === '/admin/orders/stats' && method === 'GET') {
+    if (normalizedPath === '/admin/orders/stats' && method === 'GET') {
       const stats = state.orders.reduce(
         (acc, o) => {
           acc.total += 1
@@ -793,32 +811,32 @@ export function setupMock() {
       return createResponse(config, stats)
     }
 
-    if (path.match(/^\/admin\/orders\/[^/]+\/confirm$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/orders\/[^/]+\/confirm$/) && method === 'POST') {
       const id = path.split('/')[3]
       const item = upsertById(state.orders, id, { status: 'confirmed' })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/orders\/[^/]+\/cancel$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/orders\/[^/]+\/cancel$/) && method === 'POST') {
       const id = path.split('/')[3]
       const item = upsertById(state.orders, id, { status: 'cancelled', cancelReason: body.reason || '' })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/orders\/[^/]+\/refund$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/orders\/[^/]+\/refund$/) && method === 'POST') {
       const id = path.split('/')[3]
       const item = upsertById(state.orders, id, { status: 'refunded', refundReason: body.reason || '' })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/orders\/[^/]+\/remark$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/orders\/[^/]+\/remark$/) && method === 'PUT') {
       const id = path.split('/')[3]
       const item = upsertById(state.orders, id, { remark: body.remark || '' })
       return createResponse(config, item || true)
     }
 
     // Articles + Categories
-    if (path === '/admin/content/articles' && method === 'GET') {
+    if (normalizedPath === '/admin/content/articles' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const category = (query.category || '').trim()
@@ -831,7 +849,7 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path === '/admin/content/articles' && method === 'POST') {
+    if (normalizedPath === '/admin/content/articles' && method === 'POST') {
       const item = {
         id: nextId('article'),
         likes: 0,
@@ -844,61 +862,61 @@ export function setupMock() {
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       const item = state.articles.find((x) => x.id === id)
       return createResponse(config, item || state.articles[0])
     }
 
-    if (path.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.articles, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/content\/articles\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.articles, id)
       return createResponse(config, null)
     }
 
-    if (path.match(/^\/admin\/content\/articles\/[^/]+\/publish$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/content\/articles\/[^/]+\/publish$/) && method === 'POST') {
       const id = path.split('/')[4]
       const item = upsertById(state.articles, id, { status: 'published', publishedAt: now() })
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/content\/articles\/[^/]+\/archive$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/content\/articles\/[^/]+\/archive$/) && method === 'POST') {
       const id = path.split('/')[4]
       const item = upsertById(state.articles, id, { status: 'archived' })
       return createResponse(config, item || true)
     }
 
-    if (path === '/admin/content/categories' && method === 'GET') {
+    if (normalizedPath === '/admin/content/categories' && method === 'GET') {
       return createResponse(config, state.contentCategories)
     }
 
-    if (path === '/admin/content/categories' && method === 'POST') {
+    if (normalizedPath === '/admin/content/categories' && method === 'POST') {
       const item = { id: nextId('category'), ...body }
       state.contentCategories.push(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/content\/categories\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/content\/categories\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const idx = state.contentCategories.findIndex((x) => x.id === id)
       if (idx >= 0) state.contentCategories[idx] = { ...state.contentCategories[idx], ...body }
       return createResponse(config, state.contentCategories[idx] || true)
     }
 
-    if (path.match(/^\/admin\/content\/categories\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/content\/categories\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.contentCategories, id)
       return createResponse(config, null)
     }
 
     // Article tags
-    if (path.match(/^\/admin\/articles\/[^/]+\/extract-tags$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/articles\/[^/]+\/extract-tags$/) && method === 'POST') {
       const articleId = path.split('/')[3]
       const generated = [
         { articleId, tagCode: 'postpartum_recovery', tagName: '产后恢复', source: 'AI' },
@@ -908,12 +926,12 @@ export function setupMock() {
       return createResponse(config, generated)
     }
 
-    if (path.match(/^\/admin\/articles\/[^/]+\/tags$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/articles\/[^/]+\/tags$/) && method === 'GET') {
       const articleId = path.split('/')[3]
       return createResponse(config, state.articleTags.get(articleId) || [])
     }
 
-    if (path.match(/^\/admin\/articles\/[^/]+\/tags$/) && method === 'POST') {
+    if (normalizedPath.match(/^\/admin\/articles\/[^/]+\/tags$/) && method === 'POST') {
       const articleId = path.split('/')[3]
       const list = state.articleTags.get(articleId) || []
       const item = {
@@ -927,7 +945,7 @@ export function setupMock() {
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/articles\/[^/]+\/tags\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/articles\/[^/]+\/tags\/[^/]+$/) && method === 'DELETE') {
       const articleId = path.split('/')[3]
       const tagCode = path.split('/')[5]
       const list = (state.articleTags.get(articleId) || []).filter((x) => x.tagCode !== tagCode)
@@ -943,22 +961,22 @@ export function setupMock() {
     ]
 
     for (const col of contentCollections) {
-      if (path === col.base && method === 'GET') return createResponse(config, col.data)
-      if (path === col.base && method === 'POST') {
+      if (normalizedPath === col.base && method === 'GET') return createResponse(config, col.data)
+      if (normalizedPath === col.base && method === 'POST') {
         const item = { id: nextId(col.prefix), createdAt: now(), updatedAt: now(), ...body }
         col.data.unshift(item)
         return createResponse(config, item)
       }
-      if (path.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'GET') {
+      if (normalizedPath.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'GET') {
         const id = findByPathId(path)
         return createResponse(config, col.data.find((x) => x.id === id) || col.data[0])
       }
-      if (path.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'PUT') {
+      if (normalizedPath.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'PUT') {
         const id = findByPathId(path)
         const item = upsertById(col.data, id, body)
         return createResponse(config, item || true)
       }
-      if (path.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'DELETE') {
+      if (normalizedPath.match(new RegExp(`^${col.base}\\/[^/]+$`)) && method === 'DELETE') {
         const id = findByPathId(path)
         removeById(col.data, id)
         return createResponse(config, null)
@@ -966,7 +984,7 @@ export function setupMock() {
     }
 
     // Coupons
-    if (path === '/admin/coupons' && method === 'GET') {
+    if (normalizedPath === '/admin/coupons' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const status = (query.status || '').trim()
@@ -974,37 +992,37 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path === '/admin/coupons' && method === 'POST') {
+    if (normalizedPath === '/admin/coupons' && method === 'POST') {
       const item = { id: nextId('coupon'), createdAt: now(), ...body }
       state.coupons.unshift(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/coupons\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/coupons\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       return createResponse(config, state.coupons.find((x) => x.id === id) || state.coupons[0])
     }
 
-    if (path.match(/^\/admin\/coupons\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/coupons\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.coupons, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/coupons\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/coupons\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.coupons, id)
       return createResponse(config, null)
     }
 
-    if (path.match(/^\/admin\/coupons\/[^/]+\/status$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/coupons\/[^/]+\/status$/) && method === 'PUT') {
       const id = path.split('/')[3]
       const item = upsertById(state.coupons, id, { status: body.status || 'inactive' })
       return createResponse(config, item || true)
     }
 
     // Feedback
-    if (path === '/admin/feedback/evaluations' && method === 'GET') {
+    if (normalizedPath === '/admin/feedback/evaluations' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const score = query.score ? toNumber(query.score, 0) : 0
@@ -1012,12 +1030,12 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path.match(/^\/admin\/feedback\/evaluations\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/feedback\/evaluations\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       return createResponse(config, state.evaluations.find((x) => x.id === id) || state.evaluations[0])
     }
 
-    if (path === '/admin/feedback/complaints' && method === 'GET') {
+    if (normalizedPath === '/admin/feedback/complaints' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const status = (query.status || '').trim()
@@ -1025,43 +1043,43 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path.match(/^\/admin\/feedback\/complaints\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/feedback\/complaints\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       return createResponse(config, state.complaints.find((x) => x.id === id) || state.complaints[0])
     }
 
-    if (path.match(/^\/admin\/feedback\/complaints\/[^/]+\/status$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/feedback\/complaints\/[^/]+\/status$/) && method === 'PUT') {
       const id = path.split('/')[4]
       const item = upsertById(state.complaints, id, { status: body.status || 'processing', note: body.note || '' })
       return createResponse(config, item || true)
     }
 
     // FAQ
-    if (path === '/admin/faq/categories' && method === 'GET') {
+    if (normalizedPath === '/admin/faq/categories' && method === 'GET') {
       return createResponse(config, state.faqCategories)
     }
 
-    if (path === '/admin/faq/categories' && method === 'POST') {
+    if (normalizedPath === '/admin/faq/categories' && method === 'POST') {
       const item = { id: nextId('faq_cat'), createdAt: now(), ...body }
       state.faqCategories.push(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/faq\/categories\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/faq\/categories\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const idx = state.faqCategories.findIndex((x) => x.id === id)
       if (idx >= 0) state.faqCategories[idx] = { ...state.faqCategories[idx], ...body }
       return createResponse(config, state.faqCategories[idx] || true)
     }
 
-    if (path.match(/^\/admin\/faq\/categories\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/faq\/categories\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.faqCategories, id)
       state.faqItems = state.faqItems.filter((x) => x.categoryId !== id)
       return createResponse(config, null)
     }
 
-    if (path === '/admin/faq/items' && method === 'GET') {
+    if (normalizedPath === '/admin/faq/items' && method === 'GET') {
       const page = toNumber(query.page, 1)
       const pageSize = toNumber(query.pageSize, 10)
       const categoryId = (query.categoryId || '').trim()
@@ -1069,90 +1087,90 @@ export function setupMock() {
       return createResponse(config, paginate(list, page, pageSize))
     }
 
-    if (path === '/admin/faq/items' && method === 'POST') {
+    if (normalizedPath === '/admin/faq/items' && method === 'POST') {
       const item = { id: nextId('faq_item'), createdAt: now(), ...body }
       state.faqItems.unshift(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       return createResponse(config, state.faqItems.find((x) => x.id === id) || state.faqItems[0])
     }
 
-    if (path.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.faqItems, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/faq\/items\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.faqItems, id)
       return createResponse(config, null)
     }
 
     // Hotline
-    if (path === '/admin/service/hotlines' && method === 'GET') {
+    if (normalizedPath === '/admin/service/hotlines' && method === 'GET') {
       return createResponse(config, state.hotlineConfig)
     }
 
-    if (path === '/admin/service/hotlines' && method === 'PUT') {
+    if (normalizedPath === '/admin/service/hotlines' && method === 'PUT') {
       state.hotlineConfig = { ...state.hotlineConfig, ...body }
       return createResponse(config, state.hotlineConfig)
     }
 
-    if (path === '/admin/service/hotlines' && method === 'POST') {
+    if (normalizedPath === '/admin/service/hotlines' && method === 'POST') {
       const item = { id: nextId('hotline'), sort: state.hotlineConfig.hotlines.length + 1, status: 'active', ...body }
       state.hotlineConfig.hotlines.push(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/service\/hotlines\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/service\/hotlines\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       state.hotlineConfig.hotlines = state.hotlineConfig.hotlines.filter((x: AnyObj) => x.id !== id)
       return createResponse(config, null)
     }
 
     // Center
-    if (path === '/admin/centers/home' && method === 'GET') {
+    if (normalizedPath === '/admin/centers/home' && method === 'GET') {
       return createResponse(config, state.centerHome)
     }
 
-    if (path === '/admin/centers/home' && method === 'PUT') {
+    if (normalizedPath === '/admin/centers/home' && method === 'PUT') {
       state.centerHome = { ...state.centerHome, ...body }
       return createResponse(config, state.centerHome)
     }
 
-    if (path === '/admin/centers/sections' && method === 'GET') {
+    if (normalizedPath === '/admin/centers/sections' && method === 'GET') {
       return createResponse(config, state.centerSections)
     }
 
-    if (path === '/admin/centers/sections' && method === 'POST') {
+    if (normalizedPath === '/admin/centers/sections' && method === 'POST') {
       const item = { id: nextId('section'), createdAt: now(), updatedAt: now(), ...body }
       state.centerSections.unshift(item)
       return createResponse(config, item)
     }
 
-    if (path.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'GET') {
+    if (normalizedPath.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'GET') {
       const id = findByPathId(path)
       return createResponse(config, state.centerSections.find((x) => x.id === id) || state.centerSections[0])
     }
 
-    if (path.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'PUT') {
+    if (normalizedPath.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'PUT') {
       const id = findByPathId(path)
       const item = upsertById(state.centerSections, id, body)
       return createResponse(config, item || true)
     }
 
-    if (path.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'DELETE') {
+    if (normalizedPath.match(/^\/admin\/centers\/sections\/[^/]+$/) && method === 'DELETE') {
       const id = findByPathId(path)
       removeById(state.centerSections, id)
       return createResponse(config, null)
     }
 
     // Mock default for admin/analytics paths to avoid falling back to network in demo mode.
-    if (path.startsWith('/admin') || path.startsWith('/analytics')) {
+    if (normalizedPath.startsWith('/admin') || path.startsWith('/analytics')) {
       console.warn(`[Mock Adapter] Default mock response for: ${method} ${path}`)
       return createResponse(config, null)
     }

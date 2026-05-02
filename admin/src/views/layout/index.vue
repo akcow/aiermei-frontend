@@ -110,7 +110,7 @@ const employeeMenus: MenuNode[] = [
     icon: DocumentCopy,
     children: [
       { index: '/content/articles', title: '文章管理' },
-      { index: '/content/banners', title: 'Banner管理' },
+      { index: '/content/banners', title: '海报管理' },
       { index: '/content/magazines', title: '杂志管理' },
       { index: '/content/suites', title: '套餐管理' }
     ]

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="suites-page">
     <div class="page-header">
       <h1 class="page-title">套餐管理</h1>
@@ -37,7 +37,20 @@
           <el-col :span="12"><el-form-item label="价格(分)"><el-input-number v-model="suiteForm.price" :min="0" style="width:100%" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="排序"><el-input-number v-model="suiteForm.sort" :min="1" style="width:100%" /></el-form-item></el-col>
         </el-row>
+        
         <el-form-item label="封面" required><ImageUpload v-model="suiteForm.coverImage" biz-type="suite_cover" /></el-form-item>
+        <el-form-item label="相册图">
+          <div style="display: flex; flex-direction: column; width: 100%;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+              <div v-for="(img, idx) in suiteForm.images" :key="idx" style="position: relative; width: 100px; height: 100px;">
+                <el-image :src="img" fit="cover" style="width:100%; height:100%; border-radius: 4px;" />
+                <el-button type="danger" circle size="small" @click="suiteForm.images.splice(idx, 1)" style="position: absolute; top: -5px; right: -5px; padding: 4px;"><el-icon><Delete /></el-icon></el-button>
+              </div>
+            </div>
+            <ImageUpload v-model="tempImage" biz-type="suite_images" @update:modelValue="addSuiteImage" />
+          </div>
+        </el-form-item>
+
         <el-form-item label="特色"><el-select v-model="suiteForm.features" multiple allow-create filterable style="width:100%" /></el-form-item>
         <el-form-item label="设施"><el-select v-model="suiteForm.facilities" multiple allow-create filterable style="width:100%" /></el-form-item>
         <el-form-item label="描述"><el-input v-model="suiteForm.description" type="textarea" :rows="3" /></el-form-item>
@@ -53,6 +66,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import { createSuite, deleteSuite, getSuites, updateSuite } from '@/api/modules/media'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { Suite } from '@/types'
@@ -61,11 +75,21 @@ const suites = ref<Suite[]>([])
 const editorVisible = ref(false)
 const editingSuite = ref<Suite | null>(null)
 
+const tempImage = ref('')
+
+function addSuiteImage(url: string) {
+  if (url) {
+    suiteForm.images.push(url)
+    tempImage.value = ''
+  }
+}
+
 const suiteForm = reactive({
   name: '',
   price: 0,
   size: '',
   coverImage: '',
+  images: [] as string[],
   features: [] as string[],
   facilities: [] as string[],
   description: '',
@@ -82,6 +106,7 @@ function showEditor(suite?: Suite) {
       price: suite.price,
       size: suite.size,
       coverImage: suite.coverImage,
+      images: suite.images ? [...suite.images] : [],
       features: [...suite.features],
       facilities: suite.facilities ? [...suite.facilities] : [],
       description: suite.description || '',
@@ -112,6 +137,7 @@ async function saveSuite() {
     price: suiteForm.price,
     size: suiteForm.size,
     coverImage: suiteForm.coverImage,
+    images: suiteForm.images,
     features: suiteForm.features,
     facilities: suiteForm.facilities,
     description: suiteForm.description,
