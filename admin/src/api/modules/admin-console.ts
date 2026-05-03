@@ -70,11 +70,12 @@ export function deleteTagDictionary(tagCode: string) {
 export function uploadFile(file: File, bizType: string) {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('bizType', bizType)
   return request<UploadFileResponse>({
     method: 'POST',
     url: '/files/upload',
+    params: { bizType },
     data: formData,
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
+

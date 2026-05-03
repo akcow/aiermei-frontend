@@ -5,11 +5,15 @@
   "private": true,
   "devDependencies": {
     "@dcloudio/types": "^3.4.30",
-    "@types/node": "^18.15.11"
+    "@types/node": "^18.15.11",
+    "vite": "^4.0.0"
   },
   "dependencies": {
     "vue": "^3.2.47",
     "@dcloudio/uni-app": "^3.0.0-alpha-3080220230511001",
+    "@dcloudio/uni-mp-weixin": "^3.0.0-alpha-3080220230511001",
+    "@dcloudio/uni-console": "^3.0.0-alpha-3080220230511001",
     "marked": "^18.0.0"
   }
+
 }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="articles-page">
     <div class="page-header">
       <h1 class="page-title">文章管理</h1>
@@ -98,8 +98,9 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="封面"><ImageUpload v-model="articleForm.cover" biz-type="article_cover" /></el-form-item>
-        <el-form-item v-if="articleForm.type === 'video'" label="视频地址"><el-input v-model="articleForm.mediaUrl" /></el-form-item>
+        <el-form-item v-if="articleForm.type === 'video'" label="视频"><VideoUpload v-model="articleForm.mediaUrl" biz-type="article_media" /></el-form-item>
         <el-form-item label="作者"><el-input v-model="articleForm.author" /></el-form-item>
+
         <el-form-item label="内容" required><el-input v-model="articleForm.content" type="textarea" :rows="10" /></el-form-item>
         <el-divider />
         <el-form-item label="AI标签" required>
@@ -169,6 +170,7 @@ import {
   updateArticle
 } from '@/api/modules/content'
 import ImageUpload from '@/components/ImageUpload.vue'
+import VideoUpload from '@/components/VideoUpload.vue'
 import type { Article, ArticleTag } from '@/types'
 import dayjs from 'dayjs'
 

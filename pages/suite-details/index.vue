@@ -11,7 +11,7 @@
       <view class="suite-card" v-for="item in suites" :key="item.id" @click="openDetail(item)">
         <view class="suite-cover-wrap">
           <image :src="item.coverImage || item.images?.[0]" class="suite-cover" mode="aspectFill" />
-          <view class="suite-cover-mask">沉浸式房型展示</view>
+
         </view>
         <view class="suite-body">
           <view class="suite-row">
@@ -214,20 +214,8 @@ onLoad(async () => {
 .suite-cover {
   width: 100%;
   height: 100%;
-  opacity: 0.86;
 }
 
-.suite-cover-mask {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 24rpx;
-  letter-spacing: 3rpx;
-  background: rgba(0, 0, 0, 0.2);
-}
 
 .suite-body {
   padding: 18rpx;

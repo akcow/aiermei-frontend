@@ -256,45 +256,56 @@ async function selectFaqCategory(categoryId: string, name: string) {
   faqCategoryName.value = name;
   try {
     const res = await getFaqItems(categoryId);
-    faqItems.value = res.data;
+    faqItems.value = (res.code === 0 && Array.isArray(res.data)) ? res.data : [];
   } catch (e) {
     console.error('Failed to load FAQ items:', e);
+    faqItems.value = [];
   }
+
 }
 
 async function loadByType() {
   if (type.value === 'faq') {
     try {
       const res = await getFaqCategories();
-      faqCategories.value = res.data;
+      faqCategories.value = (res.code === 0 && Array.isArray(res.data)) ? res.data : [];
     } catch (e) {
       console.error('Failed to load FAQ categories:', e);
+      faqCategories.value = [];
     }
   }
   if (type.value === 'package') {
     try {
       const res = await getSuites();
-      suites.value = res.data;
+      suites.value = (res.code === 0 && Array.isArray(res.data)) ? res.data : [];
     } catch (e) {
       console.error('Failed to load suites:', e);
+      suites.value = [];
     }
   }
   if (type.value === 'coupon') {
     try {
       const res = await getMemberCoupons();
-      coupons.value = res.data;
+      coupons.value = (res.code === 0 && Array.isArray(res.data)) ? res.data : [];
     } catch (e) {
       console.error('Failed to load coupons:', e);
+      coupons.value = [];
     }
   }
   if (type.value === 'postpartum') {
     try {
       const res = await getPostpartumServices();
-      services.value = res.data;
+      services.value = (res.code === 0 && Array.isArray(res.data)) ? res.data : [];
+      if (res.code !== 0) {
+        uni.showToast({ title: res.message || '加载失败', icon: 'none' });
+      }
     } catch (e) {
       console.error('Failed to load postpartum services:', e);
+      services.value = [];
+      uni.showToast({ title: '网络请求失败', icon: 'none' });
     }
   }
+
   if (type.value === 'hotline') {
     try {
       const res = await getServiceHotlines();
