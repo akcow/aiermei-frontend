@@ -666,6 +666,7 @@ export function setupMock() {
       // 更新 Mock 状态中的客户数据，以便后续 getCustomerDetail 能拿到更新后的结果
       const customer = state.customers.find((u) => u.uid === uid)
       if (customer) {
+        customer.aiSummary = result.summary
         customer.profileSummary = result.summary
         // 模拟 AI 分析后分数发生变化
         customer.manualTotalScore = Math.floor(60 + Math.random() * 35)

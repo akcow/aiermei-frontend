@@ -161,6 +161,8 @@ export interface Customer {
   lastActive: string;
   createdAt: string;
   profileSummary?: string;
+  aiSummary?: string;
+  aiScript?: string;
   manualTotalScore?: number;
   manualScoreSnapshot?: Record<string, any>;
 }

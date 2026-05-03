@@ -57,6 +57,7 @@ export const mockCustomers: Customer[] = Array.from({ length: 50 }, (_, i) => {
     tags: i % 3 === 0 ? ['高意向', '套房咨询'] : i % 3 === 1 ? ['产康咨询'] : [],
     lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
     createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    aiSummary: i % 5 === 0 ? '用户咨询意向较强，关注产康恢复。' : undefined,
     manualTotalScore,
     manualScoreSnapshot: manualTotalScore ? {
       conversionIntent: manualTotalScore + (i % 5),
