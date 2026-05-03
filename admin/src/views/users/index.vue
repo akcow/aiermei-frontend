@@ -503,10 +503,9 @@ async function loadUsers() {
 
 async function loadProfileData(uid: string) {
   try {
-    const [detailRes, journeyRes, analysisRes, tagsRes, scoreDraftRes, logsRes] = await Promise.all([
+    const [detailRes, journeyRes, tagsRes, scoreDraftRes, logsRes] = await Promise.all([
       getCustomerDetail(uid).catch(() => ({ data: selectedUser.value })),
       getUserJourney(uid, 100).catch(() => ({ data: { paths: [] } })),
-      analyzeUserApi(uid, false).catch(() => ({ data: { summary: '分析加载失败' } })),
       getCustomerTags(uid).catch(() => ({ data: [] })),
       getCustomerManualScoreDraft(uid).catch(() => ({ data: null })),
       getCustomerTagCorrectionLogs(uid).catch(() => ({ data: [] }))
@@ -514,7 +513,10 @@ async function loadProfileData(uid: string) {
 
     if (detailRes.data) selectedUser.value = detailRes.data as Customer
     userJourney.value = journeyRes.data as UserJourney
-    analysisResult.value = analysisRes.data as AnalysisResult
+    analysisResult.value = {
+      summary: selectedUser.value?.profileSummary || '',
+      tags: []
+    } as AnalysisResult
     customerTags.value = tagsRes.data as CustomerTag[]
     tagCorrectionLogs.value = logsRes.data as CustomerTagCorrectionLog[]
 
