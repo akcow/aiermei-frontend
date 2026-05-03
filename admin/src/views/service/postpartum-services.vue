@@ -40,7 +40,19 @@
     >
       <el-form :model="form" label-width="100px" ref="formRef" :rules="rules">
         <el-form-item label="客户UID" prop="uid">
-          <el-input v-model="form.uid" placeholder="输入客户UID" />
+          <el-input v-model="form.uid" placeholder="输入客户UID" clearable />
+          <div class="user-info-hint">
+            <Transition name="fade">
+              <div v-if="fetchingUser" class="hint-content">
+                <el-icon class="is-loading"><Loading /></el-icon>
+                <span>正在查询用户信息...</span>
+              </div>
+              <div v-else-if="userInfo" class="hint-content">
+                <el-icon class="success-icon"><User /></el-icon>
+                <span>（客户：{{ userInfo.name }} 电话：{{ userInfo.phone || '-' }}）</span>
+              </div>
+            </Transition>
+          </div>
         </el-form-item>
         <el-form-item label="服务项目" prop="serviceName">
           <el-input v-model="form.serviceName" placeholder="如：盆底修复评估" />
@@ -77,10 +89,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { Plus, Loading, User } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
+import { getCustomerDetail } from '@/api/modules/auth'
+import type { Customer } from '@/types'
 import { 
   getPostpartumServices, 
   createPostpartumService, 
@@ -95,6 +109,8 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
 const formRef = ref()
+const fetchingUser = ref(false)
+const userInfo = ref<Customer | null>(null)
 
 const form = reactive<PostpartumService>({
   uid: '',
@@ -135,6 +151,7 @@ function handleAdd() {
   })
   delete form.id
   delete form.serviceId
+  userInfo.value = null
   dialogVisible.value = true
 }
 
@@ -142,6 +159,41 @@ function handleEdit(row: PostpartumService) {
   isEdit.value = true
   Object.assign(form, row)
   dialogVisible.value = true
+}
+
+let debounceTimer: any = null
+
+watch(() => form.uid, (newUid) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  
+  if (!newUid) {
+    userInfo.value = null
+    fetchingUser.value = false
+    return
+  }
+
+  // 实时查询增加 300ms 防抖
+  debounceTimer = setTimeout(() => {
+    void fetchUserInfo(newUid)
+  }, 300)
+})
+
+async function fetchUserInfo(uid: string) {
+  if (!uid) {
+    userInfo.value = null
+    return
+  }
+  fetchingUser.value = true
+  try {
+    const res = await getCustomerDetail(uid)
+    userInfo.value = res.data
+  } catch (e) {
+    userInfo.value = null
+    // Silently fail or show error? Better show error if it was a manual input
+    console.error('Failed to fetch user info:', e)
+  } finally {
+    fetchingUser.value = false
+  }
 }
 
 async function submitForm() {
@@ -226,5 +278,50 @@ onMounted(loadData)
   padding: 0;
   border-radius: 12px;
   overflow: hidden;
+}
+
+.user-info-hint {
+  height: 20px; /* 固定高度防止抖动 */
+  margin-top: 4px;
+  font-size: 13px;
+  color: #6b7280;
+  position: relative;
+  overflow: hidden;
+  
+  .hint-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+  }
+  
+  .success-icon {
+    color: #10b981;
+  }
+  
+  .is-loading {
+    animation: rotating 2s linear infinite;
+  }
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

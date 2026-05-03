@@ -4,10 +4,10 @@
 
     <div class="card console-panel panel intro">
       <div class="intro-title">怎么理解这三个参数？</div>
-      <div class="intro-item"><b>初始热度</b>：行为发生时的初始权重，目前统一锁定为 100%（即参数值为 1.0）。</div>
+      <div class="intro-item"><b>初始热度</b>：行为发生时的初始权重。</div>
       <div class="intro-item"><b>降温速度</b>：分数随时间下降的快慢，越大降得越快。</div>
       <div class="intro-item"><b>最低保留值</b>：再久也保留的最低分，避免完全归零。</div>
-      <div class="intro-tip">提示：因系统标签衰减均以百分比（%）形式展示，初始权重统一锁定为 1.0 (100%) 不可修改。</div>
+      <div class="intro-tip">提示：因「标签衰减」代表系统标签的基础自然衰减，其初始权重锁定为 1.0 (100%) 不可修改；其他行为类型的初始热度可根据业务需要自行调整。</div>
     </div>
 
     <div class="card console-panel panel">
@@ -18,7 +18,14 @@
         </el-table-column>
         <el-table-column label="初始热度" width="180">
           <template #default="{ row }">
-            <el-input-number :model-value="1" disabled :precision="1" style="width: 120px" />
+            <el-input-number 
+              v-model="row.initialWeight" 
+              :disabled="row.eventType === 'TAG_DECAY'" 
+              :precision="1" 
+              :step="0.1"
+              :min="0"
+              style="width: 120px" 
+            />
           </template>
         </el-table-column>
         <el-table-column label="降温速度" min-width="150">
@@ -57,7 +64,8 @@ const descMap: Record<string, string> = {
   CLICK: '用户点击关键按钮后的短期兴趣热度',
   ARTICLE_VIEW: '用户深度阅读内容后的内容兴趣热度',
   AI_CHAT: '用户与AI咨询后的需求热度',
-  APPOINTMENT_INTENT: '用户表达预约意向后的高价值热度'
+  APPOINTMENT_INTENT: '用户表达预约意向后的高价值热度',
+  TAG_DECAY: '系统标签随时间推移的自然衰减权重'
 }
 
 async function load() {

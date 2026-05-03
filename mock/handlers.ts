@@ -109,6 +109,22 @@ export function mockRoute(url: string, method: string, data?: any): ApiResponse<
     case 'GET /api/v1/member/postpartum-services':
       return createMockResponse(postpartumServices);
 
+    case 'GET /api/v1/member/home':
+      return createMockResponse({
+        user: {
+          uid: 'user_123',
+          name: '111房间号宝妈',
+          avatar: 'https://picsum.photos/seed/avatar/200/200',
+          memberLevel: 'gold'
+        },
+        magazines: memberArticles,
+        serviceEntries: [
+          { id: 'package', label: '我的套餐' },
+          { id: 'coupon', label: '我的优惠券' },
+          { id: 'postpartum', label: '产后服务' }
+        ]
+      });
+
     // FAQ
     case 'GET /api/v1/faq/categories':
       return createMockResponse(faqCategories);

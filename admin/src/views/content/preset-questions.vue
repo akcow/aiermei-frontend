@@ -11,7 +11,7 @@
       <el-table :data="questions" style="width: 100%" border stripe>
         <el-table-column prop="category" label="分类" width="120">
           <template #default="{ row }">
-            <el-tag :type="getCategoryType(row.category)">{{ row.category }}</el-tag>
+            <el-tag :type="getCategoryType(row.category)">{{ getCategoryLabel(row.category) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="question" label="问题" min-width="200" show-overflow-tooltip />
@@ -35,10 +35,8 @@
       <el-form :model="form" label-width="80px" ref="formRef" :rules="rules">
         <el-form-item label="分类" prop="category">
           <el-select v-model="form.category" placeholder="请选择分类" style="width: 100%">
-            <el-option label="产后恢复" value="postpartum" />
-            <el-option label="育儿知识" value="parenting" />
-            <el-option label="月子中心" value="center" />
-            <el-option label="其他" value="other" />
+            <el-option label="产前" value="pregnancy" />
+            <el-option label="产后" value="postpartum" />
           </el-select>
         </el-form-item>
         <el-form-item label="问题" prop="question">
@@ -81,7 +79,7 @@ const formRef = ref()
 const form = reactive<PresetQuestion>({
   question: '',
   answer: '',
-  category: 'postpartum',
+  category: 'pregnancy',
   sortNo: 10
 })
 
@@ -106,7 +104,7 @@ function handleAdd() {
   Object.assign(form, {
     question: '',
     answer: '',
-    category: 'postpartum',
+    category: 'pregnancy',
     sortNo: 10
   })
   delete form.id
@@ -155,12 +153,18 @@ async function handleDelete(row: PresetQuestion) {
 
 function getCategoryType(category: string) {
   const map: Record<string, string> = {
-    postpartum: 'success',
-    parenting: 'primary',
-    center: 'warning',
-    other: 'info'
+    pregnancy: 'warning',
+    postpartum: 'success'
   }
   return map[category] || 'info'
+}
+
+function getCategoryLabel(category: string) {
+  const map: Record<string, string> = {
+    pregnancy: '产前',
+    postpartum: '产后'
+  }
+  return map[category] || category
 }
 
 onMounted(loadData)

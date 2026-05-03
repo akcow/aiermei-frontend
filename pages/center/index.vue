@@ -60,6 +60,7 @@
           <view class="facility-title">{{ item.title }}</view>
           <view class="facility-desc">{{ item.desc }}</view>
         </view>
+        <EmptyState v-if="facilities.length === 0" title="暂无能力展示" subtitle="更多核心能力敬请期待" />
 
         <view class="split-title suite-head">
           <view class="line" />
@@ -77,6 +78,7 @@
             </view>
             <image class="arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
           </view>
+          <EmptyState v-if="suites.length === 0" title="暂无套房" subtitle="目前还没有可预订的套房哦" />
         </view>
       </view>
     </scroll-view>
@@ -90,6 +92,7 @@ import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import CustomRefresher from '@/components/CustomRefresher.vue';
 import BottomNav from '@/components/BottomNav.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { getCenterHome, getCenterSections, getSuites } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
 import type { Suite, CenterSection, CenterHome } from '@/types/domain';

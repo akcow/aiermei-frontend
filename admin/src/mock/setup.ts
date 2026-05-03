@@ -147,7 +147,8 @@ const state = {
     { eventType: 'CLICK', eventLabel: '关键点击', initialWeight: 1.2, lambda: 0.028, minWeight: 0.01 },
     { eventType: 'ARTICLE_VIEW', eventLabel: '文章阅读', initialWeight: 1.5, lambda: 0.025, minWeight: 0.01 },
     { eventType: 'AI_CHAT', eventLabel: 'AI咨询', initialWeight: 2.0, lambda: 0.02, minWeight: 0.01 },
-    { eventType: 'APPOINTMENT_INTENT', eventLabel: '预约意向', initialWeight: 2.5, lambda: 0.018, minWeight: 0.02 }
+    { eventType: 'APPOINTMENT_INTENT', eventLabel: '预约意向', initialWeight: 2.5, lambda: 0.018, minWeight: 0.02 },
+    { eventType: 'TAG_DECAY', eventLabel: '标签衰减', initialWeight: 1.0, lambda: 0.005, minWeight: 0.05 }
   ] as AnyObj[],
   trafficSources: [
     { sourceChannel: 'mini_search', label: '小程序搜索', count: 45, ratio: 0.45 },
@@ -161,8 +162,10 @@ const state = {
   customerTagCorrections: [] as AnyObj[],
   customerManualScores: {} as Record<string, AnyObj>,
   presetQuestions: [
-    { id: 'pq_1', question: '产后多久可以开始运动？', answer: '建议先评估恢复情况，再循序渐进。', category: 'postpartum', sortNo: 10 },
-    { id: 'pq_2', question: '宝宝黄疸怎么办？', answer: '轻微黄疸多喂奶促进排泄，严重请咨询医生。', category: 'parenting', sortNo: 20 }
+    { id: 'pq_1', question: '孕早期孕吐严重怎么办？', answer: '孕早期孕吐常由于激素水平变化，建议少量多餐，优先选择清淡易消化的食物，必要时咨询医生。', category: 'pregnancy', sortNo: 10 },
+    { id: 'pq_2', question: '产后脱发怎么办？', answer: '产后脱发多为生理性脱发，通常在产后6-9个月自行恢复，保持心情愉悦和充足睡眠。', category: 'postpartum', sortNo: 20 },
+    { id: 'pq_3', question: '孕期腿抽筋如何缓解？', answer: '可能是缺钙引起，建议适量补充钙质，平时注意腿部保暖，建议睡前做小腿拉伸。', category: 'pregnancy', sortNo: 30 },
+    { id: 'pq_4', question: '如何科学开奶？', answer: '建议产后1小时内尽早让宝宝吸吮，按需哺乳，保持乳腺通畅。', category: 'postpartum', sortNo: 40 }
   ] as AnyObj[],
   postpartumServices: [
     { id: 'ps_1', uid: 'user_001', serviceName: '盆底修复评估', expertName: '王护理师', appointmentTime: '2026-05-10T10:00:00+08:00', durationMinutes: 45, status: 'scheduled' }
@@ -760,7 +763,7 @@ export function setupMock() {
       const item = {
         id: nextId('admin'),
         onlineStatus: 'OFFLINE',
-        permissions: [],
+        permissions: ['*'],
         status: 'ENABLED',
         createdAt: now(),
         updatedAt: now(),

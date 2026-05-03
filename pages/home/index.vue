@@ -13,7 +13,7 @@
         <CustomRefresher :status="refresherStatus" />
       </view>
 
-      <swiper class="hero" :autoplay="true" :interval="5000" :duration="500" circular indicator-dots indicator-color="rgba(255,255,255,.25)" indicator-active-color="#fff">
+      <swiper class="hero" :autoplay="true" :interval="5000" :duration="500" circular indicator-dots indicator-color="rgba(255,255,255,.25)" indicator-active-color="#fff" v-if="banners.length > 0">
         <swiper-item v-for="item in banners" :key="item.id">
           <view class="hero-item" @click="openPoster(item.id)">
             <image :src="item.image" mode="aspectFill" class="hero-image" />
@@ -26,6 +26,7 @@
           </view>
         </swiper-item>
       </swiper>
+      <EmptyState v-else title="暂无内容" subtitle="请稍后再来查看哦" />
     </scroll-view>
 
     <BottomNav current="/pages/home/index" />
@@ -37,6 +38,7 @@ import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import CustomRefresher from '@/components/CustomRefresher.vue';
 import BottomNav from '@/components/BottomNav.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { getBanners } from '@/api/modules/center';
 import { trackPath } from '@/store/session';
 import type { Banner } from '@/types/domain';

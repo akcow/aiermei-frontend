@@ -32,6 +32,14 @@
               <div class="meta">
                 <div class="name-row">
                   <h3>{{ user.name }}</h3>
+                  <el-tooltip content="复制 UID" placement="top">
+                    <el-button
+                      link
+                      :icon="CopyDocument"
+                      class="copy-uid-btn"
+                      @click.stop="copyText(user.uid)"
+                    />
+                  </el-tooltip>
                 </div>
                 <p class="phone-meta">
                   <span class="phone-text">{{ user.phone || '-' }}</span>
@@ -118,7 +126,17 @@
           <div class="identity">
             <el-avatar :size="48" :src="selectedUser.avatar">{{ selectedUser.name?.charAt(0) }}</el-avatar>
             <div class="meta">
-              <h2>{{ selectedUser.name }}</h2>
+              <div class="name-row">
+                <h2>{{ selectedUser.name }}</h2>
+                <el-tooltip content="复制 UID" placement="top">
+                  <el-button
+                    link
+                    :icon="CopyDocument"
+                    class="copy-uid-btn"
+                    @click.stop="copyText(selectedUser.uid)"
+                  />
+                </el-tooltip>
+              </div>
               <p class="phone-meta">
                 <span class="phone-text">{{ selectedUser.phone || '-' }}</span>
                 <el-icon v-if="selectedUser.phone && selectedUser.phone !== '-'" class="reveal-icon" @click.stop="togglePhone(selectedUser)">
@@ -279,7 +297,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import { View, Hide, Compass } from '@element-plus/icons-vue'
+import { View, Hide, Compass, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { analyzeUser as analyzeUserApi, getCustomerDetail, getCustomers, getUserJourney } from '@/api/modules/auth'
 import {
@@ -396,6 +414,15 @@ const hasUnsavedScoreChanges = computed(() => {
   const currentScore = JSON.stringify(scoreDimensions.map((x) => ({ key: x.key, score: x.score })))
   return currentScore !== initialScoreSnapshot.value || manualScoreNote.value !== initialNoteSnapshot.value
 })
+
+function copyText(text: string) {
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success('UID 已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.error('复制失败')
+  })
+}
 
 function formatDate(date: string) {
   if (!date) return '-'
@@ -753,6 +780,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.copy-uid-btn {
+  padding: 0;
+  height: auto;
+  color: #9aa3b2;
+  font-size: 14px;
+  
+  &:hover {
+    color: #11c5bb;
+  }
+  
+  :deep(.el-icon) {
+    font-size: 14px;
+  }
 }
 
 

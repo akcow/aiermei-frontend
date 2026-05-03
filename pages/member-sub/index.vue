@@ -58,6 +58,7 @@
             <view class="faq-entry-text">{{ cat.name }}</view>
             <image class="faq-entry-arrow" src="/static/icons/arrow-right.svg" mode="aspectFit" />
           </view>
+          <EmptyState v-if="faqCategories.length === 0" title="暂无分类" subtitle="暂无常见问题分类" />
         </view>
         <!-- 问题列表 -->
         <view v-else>
@@ -72,6 +73,7 @@
             </view>
             <view class="faq-a" v-if="expandedFaq === idx">{{ item.content }}</view>
           </view>
+          <EmptyState v-if="faqItems.length === 0" title="暂无问题" subtitle="该分类下暂无问题" />
         </view>
       </view>
 
@@ -82,6 +84,7 @@
           <view class="pkg-desc">{{ item.size }} / {{ item.features.join(' | ') }}</view>
           <view class="pkg-price">{{ item.priceLabel }}</view>
         </view>
+        <EmptyState v-if="suites.length === 0" title="暂无套餐" subtitle="目前还没有可选套餐哦" />
       </view>
 
       <view class="body" v-else-if="type === 'coupon'">
@@ -96,6 +99,7 @@
             <view class="coupon-state" :class="{ off: item.status !== 'unused' }">{{ item.status === 'unused' ? '可用' : '已过期' }}</view>
           </view>
         </view>
+        <EmptyState v-if="coupons.length === 0" title="暂无优惠券" subtitle="你还没有获得优惠券哦" />
       </view>
 
       <view class="body" v-else-if="type === 'postpartum'">
@@ -106,6 +110,7 @@
           </view>
           <view class="a">{{ item.expert }} / {{ item.time }}</view>
         </view>
+        <EmptyState v-if="services.length === 0" title="暂无服务" subtitle="目前还没有安排产后服务哦" />
       </view>
 
       <view class="body complaint-body" v-else-if="type === 'complaint'">
@@ -142,7 +147,7 @@
       </view>
 
       <view class="body" v-else>
-        <view class="card center">页面开发中...</view>
+        <EmptyState title="页面开发中" subtitle="更多精彩功能正在全力开发中，敬请期待" />
       </view>
     </scroll-view>
   </view>
@@ -152,6 +157,7 @@
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import CustomRefresher from '@/components/CustomRefresher.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { getFaqCategories, getFaqItems, getMemberCoupons, getServiceHotlines, getPostpartumServices, submitComplaint, submitEvaluation } from '@/api/modules/member';
 import { getSuites } from '@/api/modules/center';
 import { trackPath } from '@/store/session';

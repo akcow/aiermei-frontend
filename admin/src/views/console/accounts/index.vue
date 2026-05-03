@@ -55,7 +55,15 @@
         </el-form-item>
         <el-form-item label="权限" prop="permissions">
           <el-select v-model="form.permissions" placeholder="请选择权限集">
-            <el-option label="全部权限 (*)" value="*" />
+            <template v-if="activeTab === 'staff'">
+              <el-option label="全部权限" value="*" />
+              <el-option label="基本查询" value="base.view" />
+              <el-option label="内容编辑" value="content.edit" />
+              <el-option label="员工门户" value="employee.portal" />
+            </template>
+            <template v-else>
+              <el-option label="全部权限" value="*" />
+            </template>
           </el-select>
         </el-form-item>
       </el-form>

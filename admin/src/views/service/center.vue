@@ -24,14 +24,7 @@
         <el-form-item label="主标题"><el-input v-model="homeForm.brandTitle" /></el-form-item>
         <el-form-item label="副标题"><el-input v-model="homeForm.brandSubtitle" /></el-form-item>
       </el-form>
-      <el-divider>设施配置</el-divider>
-      <el-table :data="homeForm.facilities" style="width: 100%">
-        <el-table-column prop="title" label="标题" min-width="160" />
-        <el-table-column prop="desc" label="描述" min-width="220" />
-        <el-table-column prop="sort" label="排序" width="90" />
-      </el-table>
-      <el-button style="margin-top: 10px" @click="addFacility">新增设施</el-button>
-      <el-button type="primary" style="margin-top: 10px; margin-left: 8px" @click="saveHomeConfig">保存首页配置</el-button>
+      <el-button type="primary" style="margin-top: 10px" @click="saveHomeConfig">保存首页配置</el-button>
     </div>
 
     <div class="card section">
@@ -158,15 +151,6 @@ async function reloadAll() {
   sections.value = sectionsRes.data
 }
 
-function addFacility() {
-  homeForm.facilities.push({
-    id: `tmp_${Date.now()}`,
-    title: '新设施',
-    desc: '',
-    image: '',
-    sort: homeForm.facilities.length + 1
-  })
-}
 
 async function saveHomeConfig() {
   try {
